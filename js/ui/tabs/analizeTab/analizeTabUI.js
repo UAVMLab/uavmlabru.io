@@ -1028,7 +1028,7 @@ function renderSweepGraphs(data) {
             scales: {
                 x: { 
                     title: { display: true, text: 'Throttle (%)', font: { size: fontSizes.axisTitle } },
-                    ticks: { font: { size: fontSizes.ticks } }
+                    ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) }
                 },
                 yRPM: { 
                     type: 'linear', 
@@ -1152,7 +1152,7 @@ function renderStepGraphs(data) {
                 }
             },
             scales: {
-                x: { title: { display: true, text: 'Time (s)', font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks } } },
+                x: { title: { display: true, text: 'Time (s)', font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) } },
                 yThrottle: { position: 'left', title: { display: true, text: 'Throttle (%)', font: { size: fontSizes.axisTitle }, color: '#f39c12' }, ticks: { color: '#f39c12', font: { size: fontSizes.ticks } } },
                 yRPM: { 
                     position: 'right', 
@@ -1218,7 +1218,7 @@ function renderEnduranceGraphs(data) {
                 }
             },
             scales: {
-                x: { title: { display: true, text: 'Time (s)', font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks } } },
+                x: { title: { display: true, text: 'Time (s)', font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) } },
                 y: { title: { display: true, text: 'Temperature/Voltage/Current', font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks } } }
             }
         }
@@ -1317,7 +1317,7 @@ function renderIRGraphs(data) {
                 }
             },
             scales: {
-                x: { title:{ text:'ΔCurrent (A)', display:true, font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks } } },
+                x: { title:{ text:'ΔCurrent (A)', display:true, font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) } },
                 y: { title:{ text:'ΔVoltage (V)', display:true, font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks } } }
             }
         }
@@ -1420,7 +1420,7 @@ function renderKVGraphs(data) {
                 }
             },
             scales: {
-                x: { title:{ text:'Voltage (V)', display:true, font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks } } },
+                x: { title:{ text:'Voltage (V)', display:true, font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) } },
                 y: { 
                     title:{ text:'RPM (×10³)', display:true, font: { size: fontSizes.axisTitle } },
                     ticks: {
@@ -1483,7 +1483,7 @@ function renderThermalGraphs(data) {
                 }
             },
             scales: {
-                x: { title: { display: true, text: 'Throttle (%)', font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks } } },
+                x: { title: { display: true, text: 'Throttle (%)', font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) } },
                 y: { title: { display: true, text: 'Temperature (°C)', font: { size: fontSizes.axisTitle }, color: '#e74c3c' }, ticks: { color: '#e74c3c', font: { size: fontSizes.ticks } } },
                 yThrottle: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Throttle (%)', font: { size: fontSizes.axisTitle }, color: '#3498db' }, ticks: { color: '#3498db', font: { size: fontSizes.ticks } } }
             }
@@ -1582,7 +1582,7 @@ function renderEfficiencyGraphs(data) {
                 }
             },
             scales: {
-                x: { title: { display: false }, ticks: { font: { size: fontSizes.ticks } } },
+                x: { title: { display: false }, ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) } },
                 yEfficiency: { 
                     type: 'linear', 
                     position: 'left', 

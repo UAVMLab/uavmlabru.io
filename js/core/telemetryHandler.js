@@ -98,9 +98,9 @@ export function resetTelemetryToNA() {
     ];
     for (const [ctrlId, analizeId] of ids) {
         const el = document.getElementById(ctrlId);
-        if (el) el.textContent = 'N/A';
+        if (el) el.textContent = 'н/д';
         const el2 = document.getElementById(analizeId);
-        if (el2) el2.textContent = 'N/A';
+        if (el2) el2.textContent = 'н/д';
     }
 }
 
@@ -160,13 +160,13 @@ function updateTelemetryUI(msg, { voltageMetric, currentMetric, powerMetric, rpm
         voltageMetric.textContent = `${msg.voltage.toFixed(2)} V`;
         updateBatteryIndicator(msg.voltage);
     } else {
-        voltageMetric.textContent = 'N/A';
+        voltageMetric.textContent = 'н/д';
     }
     if (msg.current !== undefined) {
         currentMetric.textContent = `${msg.current.toFixed(2)} A`;
         updateCurrentIndicator(msg.current);
     } else {
-        currentMetric.textContent = 'N/A';
+        currentMetric.textContent = 'н/д';
     }
     if (msg.power !== undefined) {
         const power = (msg.voltage !== undefined && msg.current !== undefined)
@@ -174,31 +174,31 @@ function updateTelemetryUI(msg, { voltageMetric, currentMetric, powerMetric, rpm
             : msg.power;
         powerMetric.textContent = `${power.toFixed(2)} W`;
     } else {
-        powerMetric.textContent = 'N/A';
+        powerMetric.textContent = 'н/д';
     }
     if (msg.rpm !== undefined) {
         rpmMetric.textContent = msg.rpm;
         updateRPMIndicator(msg.rpm);
     } else {
-        rpmMetric.textContent = 'N/A';
+        rpmMetric.textContent = 'н/д';
     }
     if (msg.thrust !== undefined && msg.thrust !== null && !isNaN(msg.thrust)) {
         thrustMetric.textContent = `${msg.thrust.toFixed(2)} g`;
         updateThrustIndicator(msg.thrust);
     } else {
-        thrustMetric.textContent = 'N/A';
+        thrustMetric.textContent = 'н/д';
     }
     if (msg.escTemp !== undefined) {
         escTempMetric.textContent = `${msg.escTemp.toFixed(1)} °C`;
         updateESCTempIndicator(msg.escTemp);
     } else {
-        escTempMetric.textContent = 'N/A';
+        escTempMetric.textContent = 'н/д';
     }
     if (msg.motorTemp !== undefined && msg.motorTemp !== null && !isNaN(msg.motorTemp)) {
         motorTempMetric.textContent = `${msg.motorTemp.toFixed(1)} °C`;
         updateMotorTempIndicator(msg.motorTemp);
     } else {
-        motorTempMetric.textContent = 'N/A';
+        motorTempMetric.textContent = 'н/д';
     }
 }
 
@@ -218,13 +218,13 @@ function updateAnalizeTabTelemetry(msg) {
         if (msg.voltage !== undefined) {
             aV.textContent = `${msg.voltage.toFixed(2)} V`;
             updateBatteryIndicatorAnalize(msg.voltage);
-        } else { aV.textContent = 'N/A'; }
+        } else { aV.textContent = 'н/д'; }
     }
     if (aC) {
         if (msg.current !== undefined) {
             aC.textContent = `${msg.current.toFixed(2)} A`;
             updateCurrentIndicatorAnalize(msg.current);
-        } else { aC.textContent = 'N/A'; }
+        } else { aC.textContent = 'н/д'; }
     }
     if (aP) {
         if (msg.power !== undefined) {
@@ -232,31 +232,31 @@ function updateAnalizeTabTelemetry(msg) {
                 ? msg.voltage * msg.current
                 : msg.power;
             aP.textContent = `${power.toFixed(2)} W`;
-        } else { aP.textContent = 'N/A'; }
+        } else { aP.textContent = 'н/д'; }
     }
     if (aRPM) {
         if (msg.rpm !== undefined) {
             aRPM.textContent = `${msg.rpm}`;
             updateRPMIndicatorAnalize(msg.rpm);
-        } else { aRPM.textContent = 'N/A'; }
+        } else { aRPM.textContent = 'н/д'; }
     }
     if (aT) {
         if (msg.thrust !== undefined && msg.thrust !== null && !isNaN(msg.thrust)) {
             aT.textContent = `${msg.thrust.toFixed(2)} g`;
             updateThrustIndicatorAnalize(msg.thrust);
-        } else { aT.textContent = 'N/A'; }
+        } else { aT.textContent = 'н/д'; }
     }
     if (aET) {
         if (msg.escTemp !== undefined) {
             aET.textContent = `${msg.escTemp.toFixed(1)} °C`;
             updateESCTempIndicatorAnalize(msg.escTemp);
-        } else { aET.textContent = 'N/A'; }
+        } else { aET.textContent = 'н/д'; }
     }
     if (aMT) {
         if (msg.motorTemp !== undefined && msg.motorTemp !== null && !isNaN(msg.motorTemp)) {
             aMT.textContent = `${msg.motorTemp.toFixed(1)} °C`;
             updateMotorTempIndicatorAnalize(msg.motorTemp);
-        } else { aMT.textContent = 'N/A'; }
+        } else { aMT.textContent = 'н/д'; }
     }
 }
 
@@ -333,13 +333,13 @@ function forwardWarningsToAnalize(statusBits) {
     };
     
     const warnings = [];
-    if (statusBits & STATUS_BITS.WARN_BATTERY_LOW) warnings.push('Battery low');
-    if (statusBits & STATUS_BITS.WARN_ESC_OVERHEAT) warnings.push('ESC overheat');
-    if (statusBits & STATUS_BITS.WARN_MOTOR_OVERHEAT) warnings.push('Motor overheat');
-    if (statusBits & STATUS_BITS.WARN_OVER_CURRENT) warnings.push('Over current');
-    if (statusBits & STATUS_BITS.WARN_OVER_RPM) warnings.push('Over RPM');
-    if (statusBits & STATUS_BITS.WARN_MOTOR_STALL) warnings.push('Motor stall');
-    if (statusBits & STATUS_BITS.WARN_FULL_USR_CFG_PRFLS) warnings.push('Profiles full');
+    if (statusBits & STATUS_BITS.WARN_BATTERY_LOW) warnings.push('Низкий заряд АКБ');
+    if (statusBits & STATUS_BITS.WARN_ESC_OVERHEAT) warnings.push('Перегрев ESC');
+    if (statusBits & STATUS_BITS.WARN_MOTOR_OVERHEAT) warnings.push('Перегрев мотора');
+    if (statusBits & STATUS_BITS.WARN_OVER_CURRENT) warnings.push('Превышение тока');
+    if (statusBits & STATUS_BITS.WARN_OVER_RPM) warnings.push('Превышение оборотов');
+    if (statusBits & STATUS_BITS.WARN_MOTOR_STALL) warnings.push('Заторможенный мотор');
+    if (statusBits & STATUS_BITS.WARN_FULL_USR_CFG_PRFLS) warnings.push('Профили заполнены');
     
     if (warnings.length) {
         window.updateAnalizeStatusUI({ warn: warnings.join(', ') });
@@ -387,7 +387,7 @@ function handleCurrentProfileMessage(msg) {
 function handleVersionMessage(msg, firmwareElement) {
     if (msg.firmware !== undefined && firmwareElement) {
         firmwareElement.textContent = `${msg.firmware}v`;
-        appendLog(`Firmware version: ${msg.firmware}`);
+        appendLog(`Версия прошивки: ${msg.firmware}`);
     }
 }
 
@@ -395,11 +395,11 @@ function handleVersionMessage(msg, firmwareElement) {
  * Handles acknowledgment messages
  */
 function handleAckMessage(msg) {
-    appendLog(`ACK received for command: ${msg.command || 'unknown'}`);
+    appendLog(`Получено подтверждение для команды: ${msg.command || 'неизвестно'}`);
     
     if (msg.command === 'set_dev_id') {
-        setStatus('Device ID updated successfully. Please disconnect and reconnect to see the new device name.', true);
-        appendLog('Device ID changed - reconnection recommended to update display.');
+        setStatus('ID устройства успешно обновлён. Отключитесь и переподключитесь, чтобы увидеть новое имя устройства.', true);
+        appendLog('ID устройства изменён — рекомендуется переподключение для обновления отображения.');
     }
 }
 

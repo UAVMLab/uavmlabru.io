@@ -61,7 +61,7 @@ function renderDeviceList() {
     if (!state.discoveredDevices.length) {
         const empty = document.createElement('li');
         empty.className = 'empty';
-        empty.textContent = 'No devices discovered yet.';
+        empty.textContent = 'Устройства пока не обнаружены.';
         deviceList.appendChild(empty);
         return;
     }
@@ -98,7 +98,7 @@ async function connectDevice() {
                 coreRememberDevice(device);
                 
                 if (deviceNameDisplay) {
-                    deviceNameDisplay.textContent = `Device: ${device.name || 'Unknown'}`;
+                    deviceNameDisplay.textContent = `Устройство: ${device.name || 'Неизвестно'}`;
                 }
                 
                 // Update button states
@@ -130,7 +130,7 @@ function onDisconnected() {
     resetTelemetryToNA();
     
     if (deviceNameDisplay) {
-        deviceNameDisplay.textContent = 'Device: N/A';
+        deviceNameDisplay.textContent = 'Устройство: н/д';
     }
     
     // Update button states

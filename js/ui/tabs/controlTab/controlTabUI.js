@@ -33,7 +33,7 @@ export function updateControlsAvailability() {
             }
         });
         if (controlStatus) {
-            controlStatus.textContent = 'Connect to device to enable controls.';
+            controlStatus.textContent = 'Подключите устройство для активации управления.';
             controlStatus.style.color = '#6c757d';
         }
         if (telemetryCard) {
@@ -52,7 +52,7 @@ export function updateControlsAvailability() {
             }
         });
         if (controlStatus) {
-            controlStatus.textContent = '⚠️ No active profile set. Please select a profile from the Profiles tab.';
+            controlStatus.textContent = '⚠️ Активный профиль не выбран. Выберите профиль на вкладке «Профили».';
             controlStatus.style.color = '#f39c12';
         }
         // Dim telemetry card to indicate it's not active
@@ -72,7 +72,7 @@ export function updateControlsAvailability() {
             }
         });
         if (controlStatus) {
-            controlStatus.textContent = 'Ready to control motor.';
+            controlStatus.textContent = 'Готово к управлению мотором.';
             controlStatus.style.color = '';
         }
         // Restore telemetry card opacity
@@ -308,7 +308,7 @@ async function handleArm() {
         await sendCommand(cmd);
         isArmed = true;
         vibratePattern([100, 50, 150]); // Success pattern
-        setControlStatus(`Motor ${isForceArm ? 'force ' : ''}armed.`);
+        setControlStatus(`Мотор ${isForceArm ? 'принудительно ' : ''}взведён.`);
         
         // Show fixed disarm button
         if (fixedDisarmContainer) {
@@ -318,10 +318,10 @@ async function handleArm() {
         // Update UI
         if (slideButton) slideButton.classList.add('armed');
         if (slideToArm) slideToArm.classList.add('armed');
-        if (slideText) slideText.textContent = 'ARMED ✓';
+        if (slideText) slideText.textContent = 'ВЗВЕДЁН ✓';
     } catch (error) {
         vibratePattern([300]); // Long vibration for error
-        setControlStatus(`Arm failed: ${error.message}`, false);
+        setControlStatus(`Ошибка взведения: ${error.message}`, false);
         resetSlideToArm();
     }
 }
@@ -353,7 +353,7 @@ export function checkMotorStatus(status) {
                 console.log('Auto-disarm check after 2s - stillArmed:', stillArmed, 'stillNotSpinning:', stillNotSpinning);
                 
                 if (stillArmed && stillNotSpinning) {
-                    appendLog('Auto-disarm: Motor armed but not spinning for 2 seconds.');
+                    appendLog('Авторазвзведение: мотор взведён, но не вращается более 2 секунд.');
                     vibratePattern([150, 70, 150]); // Warning pattern
                     autoDisarmInProgress = true;
                     handleDisarm().finally(() => {
@@ -379,11 +379,11 @@ async function handleDisarm() {
     try {
         await sendCommand('disarm');
         vibrate(80); // Medium vibration for disarm
-        setControlStatus('Motor disarmed.');
+        setControlStatus('Мотор развзведён.');
         resetSlideToArm();
     } catch (error) {
         vibratePattern([300]); // Long vibration for error
-        setControlStatus(`Disarm failed: ${error.message}`, false);
+        setControlStatus(`Ошибка развзведения: ${error.message}`, false);
     }
 }
 
@@ -407,7 +407,7 @@ function resetSlideToArm() {
         }, 300);
     }
     if (slideToArm) slideToArm.classList.remove('armed');
-    if (slideText) slideText.textContent = 'Slide to ARM >> ';
+    if (slideText) slideText.textContent = 'Сдвиньте для взвода >> ';
 }
 
 // Export function to reset control tab UI on disconnect
@@ -464,9 +464,9 @@ function handleForceArmChange(event) {
     if (event.target.checked) {
         vibratePattern([150, 70, 150]); // Warning pattern
         const confirmed = confirm(
-            '⚠️ WARNING: Force Arm Override\n\n' +
-            'You are about to enable FORCE ARM mode. This bypasses safety checks and can be dangerous.\n\n' +
-            'Are you sure you want to proceed?'
+            '⚠️ ПРЕДУПРЕЖДЕНИЕ: Принудительное взведение\n\n' +
+            'Вы собираетесь включить режим ПРИНУДИТЕЛЬНОГО ВЗВЕДЕНИЯ. Это обходит проверки безопасности и может быть опасно.\n\n' +
+            'Вы уверены, что хотите продолжить?'
         );
         if (!confirmed) {
             event.target.checked = false;
@@ -534,11 +534,11 @@ async function sendThrottleCommand(value, percentage) {
     
     try {
         await sendCommand('set_throttle', { value: value });
-        setControlStatus(`Throttle set to ${percentage}% (${value}).`);
+        setControlStatus(`Газ установлен на ${percentage}% (${value}).`);
     } catch (error) {
         vibratePattern([200]); // Long vibration for error
-        setControlStatus(`Throttle update failed: ${error.message}`, false);
-        appendLog(`Throttle error: ${error.message}`, 'error');
+        setControlStatus(`Ошибка изменения газа: ${error.message}`, false);
+        appendLog(`Ошибка газа: ${error.message}`, 'error');
     } finally {
         isThrottleSending = false;
     }
@@ -554,10 +554,10 @@ async function sendThrottleCommand(value, percentage) {
 //         // Send raw value (28-2047) to device
 //         await sendCommand('set_throttle', { value: value });
 //         vibrate(30); // Confirm command sent
-//         setControlStatus(`Throttle set to ${percentage}% (${value}).`);
+//         setControlStatus(`Газ установлен на ${percentage}% (${value}).`);
 //     } catch (error) {
 //         vibratePattern([200]); // Long vibration for error
-//         setControlStatus(`Throttle update failed: ${error.message}`, false);
+//         setControlStatus(`Ошибка изменения газа: ${error.message}`, false);
 //     }
 // }
 
@@ -567,10 +567,10 @@ async function handleTestModeChange() {
     try {
         await sendCommand('SET_TEST_MODE', { mode: testModeSelect.value });
         vibrate(50); // Confirm command sent
-        setControlStatus(`Test mode set to ${testModeSelect.value}.`);
+        setControlStatus(`Режим теста установлен: ${testModeSelect.value}.`);
     } catch (error) {
         vibratePattern([300]); // Long vibration for error
-        setControlStatus(`Failed to set test mode: ${error.message}`, false);
+        setControlStatus(`Не удалось установить режим теста: ${error.message}`, false);
     }
 }
 
@@ -581,7 +581,7 @@ async function handleTestDurationChange() {
         await sendCommand('SET_TEST_DURATION', { duration: Number(testDurationInput.value) });
         vibrate(50); // Confirm command sent
     } catch (error) {
-        appendLog(`Failed to update test duration: ${error.message}`);
+        appendLog(`Не удалось обновить длительность теста: ${error.message}`);
     }
 }
 
@@ -592,10 +592,10 @@ async function handleRunTest() {
     try {
         await sendCommand('RUN_TEST', { duration: Number(testDurationInput.value), mode: testModeSelect.value });
         vibratePattern([150, 70, 150]); // Test running confirmation
-        setControlStatus('Test running...');
+        setControlStatus('Тест выполняется...');
     } catch (error) {
         vibratePattern([300, 150, 300]); // Error pattern
-        setControlStatus(`Test start failed: ${error.message}`, false);
+        setControlStatus(`Ошибка запуска теста: ${error.message}`, false);
     }
 }
 
@@ -604,10 +604,10 @@ async function handleStopTest() {
     try {
         await sendCommand('STOP_TEST');
         vibrate(80); // Stop confirmed
-        setControlStatus('Stop signal sent.');
+        setControlStatus('Сигнал остановки отправлен.');
     } catch (error) {
         vibratePattern([300]); // Long vibration for error
-        setControlStatus(`Test stop failed: ${error.message}`, false);
+        setControlStatus(`Ошибка остановки теста: ${error.message}`, false);
     }
 }
 

@@ -988,7 +988,7 @@ button.ghost {
 }
 
 [data-connected-only]:disabled:hover::after {
-    content: 'Connect a device to enable';
+    content: 'Подключите устройство для активации';
     position: absolute;
     bottom: calc(100% + 6px);
     left: 50%;

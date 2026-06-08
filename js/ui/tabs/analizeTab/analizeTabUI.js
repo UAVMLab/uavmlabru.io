@@ -10,7 +10,40 @@ import { appendLog } from '../../../utils/logUtils.js';
 import { sendCommand } from '../../../utils/bluetooth.js';
 import { getCurrentActiveProfile } from '../profileTab/profilesTab.js';
 
+const MODE_LABELS = {
+    sweep: 'Статический разгон по газу',
+    step: 'Ступенчатый отклик',
+    endurance: 'Выносливость при фиксированном газе',
+    ir: 'Внутр. сопротивление АКБ',
+    kv: 'Оценка KV',
+    thermal: 'Тепловой стресс ESC',
+    mapping: 'Картирование проп./мотор',
+    efficiency: 'Анализ эффективности'
+};
 
+function getModeLabel(mode) {
+    return MODE_LABELS[mode] || mode;
+}
+
+function datasetFormatType(label) {
+    if (!label) return 'default';
+    const l = label.toLowerCase();
+    if (l.includes('оборот') || (l.includes('rpm') && !l.includes('1000'))) return 'rpm';
+    if (l.includes('газ') || l.includes('throttle')) return 'throttle';
+    if (l.includes('тяга') || l.includes('thrust')) return 'thrust';
+    if (l.includes('эффективность') || l.includes('efficiency')) return 'efficiency';
+    if (l.includes('1000') && (l.includes('об') || l.includes('rpm'))) return 'per_rpm';
+    if (l.includes('линейная') || l.includes('linear fit')) return 'linear_fit';
+    return 'default';
+}
+
+function formatChartValue(label, value) {
+    const fmt = datasetFormatType(label);
+    if (fmt === 'rpm') return Math.round(value);
+    if (fmt === 'throttle' || fmt === 'thrust') return value.toFixed(2);
+    if (fmt === 'efficiency') return value.toFixed(3);
+    return value.toFixed(1);
+}
 
 // -----------------------------------------------------------------------------
 // Constants & Small Utilities
@@ -136,7 +169,7 @@ async function sendThrottle(percent) {
             window._startDataCollection();
         }
     } catch (err) {
-        appendLog(`sendThrottle error: ${err.message}`);
+        appendLog(`Ошибка sendThrottle: ${err.message}`);
     }
 }
 
@@ -182,8 +215,8 @@ async function startAnalyze(mode, params) {
     state.analysis.stopping = false;
     state.analysis.mode = mode;
     state.analysis.lastError = null;
-    appendLog(`Analyze start: ${mode}`);
-    setAnalizeStatusMessage(`${mode} analyze is running`, 'info');
+    appendLog(`Запуск анализа: ${getModeLabel(mode)}`);
+    setAnalizeStatusMessage(`Анализ «${getModeLabel(mode)}» выполняется`, 'info');
     updateAnalizeControlsEnabled();
 
     // progress UI
@@ -233,13 +266,13 @@ async function startAnalyze(mode, params) {
             case 'thermal': await runThermalStress(params); break;
             case 'mapping': await runMappingTest(params); break;
             case 'efficiency': await runEfficiencyAnalysis(params); break;
-            default: throw new Error(`Unknown analyze mode: ${mode}`);
+            default: throw new Error(`Неизвестный режим анализа: ${mode}`);
         }
-        setAnalizeStatusMessage(`${mode} analyze completed`, 'info');
+        setAnalizeStatusMessage(`Анализ «${getModeLabel(mode)}» завершён`, 'info');
     } catch (err) {
         state.analysis.lastError = err.message || String(err);
-        setAnalizeStatusMessage(`Error: ${err.message || err}`, 'error');
-        appendLog(`Analyze error: ${err.message || err}`);
+        setAnalizeStatusMessage(`Ошибка: ${err.message || err}`, 'error');
+        appendLog(`Ошибка анализа: ${err.message || err}`);
     } finally {
         // tidy up
         state.analysis.running = false;
@@ -276,8 +309,8 @@ async function stopAnalyze() {
     state.analysis.running = false;
     state.analysis.stopping = true;
     updateAnalizeControlsEnabled();
-    appendLog(`Analyze stop requested: ${mode}`);
-    setAnalizeStatusMessage('Stopping analyze...', 'warn');
+    appendLog(`Запрошена остановка анализа: ${getModeLabel(mode)}`);
+    setAnalizeStatusMessage('Остановка анализа...', 'warn');
 
     // ramp down from currentThrottle to arm throttle percent
     const profile = getCurrentActiveProfile();
@@ -287,7 +320,7 @@ async function stopAnalyze() {
     await rampThrottle(currentThrottle, armPercent, 2500);
 
     state.analysis.stopping = false;
-    setAnalizeStatusMessage(`${mode} analyze stopped`, 'info');
+    setAnalizeStatusMessage(`Анализ «${getModeLabel(mode)}» остановлен`, 'info');
     updateAnalizeControlsEnabled(false);
 }
 
@@ -319,7 +352,7 @@ async function runThrottleSweep(params) {
         await rampThrottle(endThrottle, 0, Math.max(200, (endThrottle / rampRate) * 1000));
         if (!state.analysis.running) break;
     }
-    updateProgress(100, `Completed ${repeats} repeats`);
+    updateProgress(100, `Завершено повторов: ${repeats}`);
 }
 
 async function runStepResponse(params) {
@@ -336,12 +369,12 @@ async function runStepResponse(params) {
         if (!state.analysis.running) break;
         await new Promise(r => setTimeout(r, offDuration * 1000));
     }
-    if (state.analysis.running) updateProgress(100, `Completed ${cycles} cycles`);
+    if (state.analysis.running) updateProgress(100, `Завершено циклов: ${cycles}`);
 }
 
 async function runEnduranceTest(params) {
     const { throttle = 50, duration = 10, cooldown = 2 } = params;
-    updateProgress(0, 'Running endurance test');
+    updateProgress(0, 'Выполняется тест на выносливость');
 
     // ramp to throttle
     await rampThrottle(0, throttle, 2000);
@@ -351,11 +384,11 @@ async function runEnduranceTest(params) {
     const durationMs = duration * 60 * 1000;
     const checkInterval = 1000;
     for (let elapsed = 0; elapsed < durationMs && state.analysis.running; elapsed += checkInterval) {
-        updateProgress((elapsed / durationMs) * 100, `Endurance: ${Math.round(elapsed / 1000)}s / ${duration * 60}s`);
+        updateProgress((elapsed / durationMs) * 100, `Выносливость: ${Math.round(elapsed / 1000)} с / ${duration * 60} с`);
         await new Promise(r => setTimeout(r, Math.min(checkInterval, durationMs - elapsed)));
     }
     if (!state.analysis.running) return;
-    updateProgress(100, 'Endurance test completed');
+    updateProgress(100, 'Тест на выносливость завершён');
 
     // ramp down (mark end of measurement data before ramping down)
     window._markDataEnd && window._markDataEnd();
@@ -365,7 +398,7 @@ async function runEnduranceTest(params) {
     if (cooldown > 0) {
         const cooldownMs = cooldown * 60 * 1000;
         for (let elapsed = 0; elapsed < cooldownMs && state.analysis.running; elapsed += checkInterval) {
-            updateProgress(100, `Cooldown: ${Math.round(elapsed / 1000)}s / ${cooldown * 60}s`);
+            updateProgress(100, `Охлаждение: ${Math.round(elapsed / 1000)} с / ${cooldown * 60} с`);
             await new Promise(r => setTimeout(r, Math.min(checkInterval, cooldownMs - elapsed)));
         }
     }
@@ -384,7 +417,7 @@ async function runIRTest(params) {
     }
     if (state.analysis.running) {
         await sendThrottle(baseline);
-        updateProgress(100, 'IR test completed');
+        updateProgress(100, 'Тест внутреннего сопротивления завершён');
     }
 }
 
@@ -398,12 +431,12 @@ async function runKVEstimation(params) {
         updateProgress((s / Math.max(1, voltageSteps - 1)) * 100, `Step ${s + 1}/${voltageSteps}`);
         // Prompt user to set voltage and confirm
         await new Promise(resolve => {
-            setAnalizeStatusMessage(`Step ${s + 1}: Set supply voltage to desired value, then click CONFIRM to continue.`, 'warn');
+            setAnalizeStatusMessage(`Шаг ${s + 1}: Установите напряжение питания на нужное значение, затем нажмите «ПОДТВЕРДИТЬ» для продолжения.`, 'warn');
             let confirmBtn = document.getElementById('kvConfirmBtn');
             if (!confirmBtn) {
                 confirmBtn = document.createElement('button');
                 confirmBtn.id = 'kvConfirmBtn';
-                confirmBtn.textContent = 'CONFIRM VOLTAGE';
+                confirmBtn.textContent = 'ПОДТВЕРДИТЬ НАПРЯЖЕНИЕ';
                 confirmBtn.style = 'margin: 1rem 0; padding: 0.5rem 1.2rem; font-size: 1.1em; background: #149eca; color: #fff; border: none; border-radius: 4px; cursor: pointer;';
                 const card = document.getElementById('analizeCard');
                 if (card) card.appendChild(confirmBtn);
@@ -413,7 +446,7 @@ async function runKVEstimation(params) {
             confirmBtn.onclick = () => {
                 confirmBtn.disabled = true;
                 confirmBtn.style.display = 'none';
-                setAnalizeStatusMessage(`Voltage confirmed for step ${s + 1}. Running dwell...`, 'info');
+                setAnalizeStatusMessage(`Напряжение подтверждено для шага ${s + 1}. Выполняется выдержка...`, 'info');
                 resolve();
             };
         });
@@ -434,31 +467,31 @@ async function runKVEstimation(params) {
         // optional: check current ceiling and abort if exceeded
         const last = state.lastRxData || {};
         if (last.current && last.current > currentCeiling) {
-            throw new Error(`Current ceiling exceeded: ${last.current}A`);
+            throw new Error(`Превышен предел тока: ${last.current} А`);
         }
     }
     if (state.analysis.running) {
         window._markDataEnd && window._markDataEnd();
         await sendThrottle(0);
-        updateProgress(100, 'KV estimation completed');
+        updateProgress(100, 'Оценка KV завершена');
     }
 }
 
 async function runThermalStress(params) {
     const { segment1Throttle = 70, segment1Duration = 120, segment2Throttle = 90, segment2Duration = 30 } = params;
-    updateProgress(0, 'Segment 1');
+    updateProgress(0, 'Сегмент 1');
     await rampThrottle(0, segment1Throttle, 2000);
     if (!state.analysis.running) return;
     await new Promise(r => setTimeout(r, segment1Duration * 1000));
     if (!state.analysis.running) return;
 
-    updateProgress(50, 'Segment 2');
+    updateProgress(50, 'Сегмент 2');
     await rampThrottle(segment1Throttle, segment2Throttle, 2000);
     if (!state.analysis.running) return;
     await new Promise(r => setTimeout(r, segment2Duration * 1000));
     if (!state.analysis.running) return;
 
-    updateProgress(100, 'Thermal stress test completed');
+    updateProgress(100, 'Тест теплового стресса завершён');
     window._markDataEnd && window._markDataEnd();
     await rampThrottle(segment2Throttle, 0, 2000);
 }
@@ -470,7 +503,7 @@ async function runMappingTest(params) {
         // Use a standard sweep for mapping
         await runThrottleSweep({ startThrottle: 10, endThrottle: 80, stepSize: 10, dwell: 2, rampRate: 20, repeats: 1 });
     }
-    if (state.analysis.running) updateProgress(100, 'Mapping test completed');
+    if (state.analysis.running) updateProgress(100, 'Тест картирования завершён');
 }
 
 async function runEfficiencyAnalysis(params) {
@@ -494,7 +527,7 @@ async function runEfficiencyAnalysis(params) {
     // Ramp down to zero (mark end of measurement data before ramping down)
     window._markDataEnd && window._markDataEnd();
     await rampThrottle(endThrottle, 0, Math.max(200, (endThrottle / rampRate) * 1000));
-    updateProgress(100, 'Efficiency analysis completed');
+    updateProgress(100, 'Анализ эффективности завершён');
 }
 
 // -----------------------------------------------------------------------------
@@ -702,13 +735,13 @@ const CrosshairPlugin = {
         let fitLineInfo = null;
         // Find regression/fit line if present
         chart.data.datasets.forEach((ds, idx) => {
-            if (ds.label && ds.label.toLowerCase().includes('linear fit')) {
+            if (datasetFormatType(ds.label) === 'linear_fit') {
                 fitLineInfo = ds;
             }
         });
         chart.data.datasets.forEach((ds, idx) => {
             // Only show scatter/primary data, skip linear fit for value box
-            if (ds.label && ds.label.toLowerCase().includes('linear fit')) return;
+            if (datasetFormatType(ds.label) === 'linear_fit') return;
             const data = ds.data;
             // SCATTER MODE (object points)
             if (typeof data[0] === 'object') {
@@ -722,19 +755,7 @@ const CrosshairPlugin = {
                     }
                 });
                 if (closest) {
-                    let displayValue;
-                    if (ds.label === 'RPM') {
-                        displayValue = Math.round(closest.y);
-                    } else if (ds.label && ds.label.includes('Throttle')) {
-                        displayValue = closest.y.toFixed(2);
-                    } else if (ds.label && ds.label.includes('Thrust')) {
-                        displayValue = closest.y.toFixed(2);
-                    } else if (ds.label && ds.label.includes('Efficiency')) {
-                        displayValue = closest.y.toFixed(3);
-                    } else {
-                        displayValue = closest.y.toFixed(1);
-                    }
-                    lines.push(`${ds.label}: ${displayValue}`);
+                    lines.push(`${ds.label}: ${formatChartValue(ds.label, closest.y)}`);
                 }
             } else {
                 // LINE MODE (array)
@@ -744,19 +765,7 @@ const CrosshairPlugin = {
                     // Use nearest index for category scale
                     let idx = Math.round(xValue);
                     idx = Math.max(0, Math.min(idx, data.length - 1));
-                    let displayValue;
-                    if (ds.label === 'RPM') {
-                        displayValue = Math.round(data[idx]);
-                    } else if (ds.label && ds.label.includes('Throttle')) {
-                        displayValue = data[idx].toFixed(2);
-                    } else if (ds.label && ds.label.includes('Thrust')) {
-                        displayValue = data[idx].toFixed(2);
-                    } else if (ds.label && ds.label.includes('Efficiency')) {
-                        displayValue = data[idx].toFixed(3);
-                    } else {
-                        displayValue = data[idx].toFixed(1);
-                    }
-                    lines.push(`${ds.label}: ${displayValue}`);
+                    lines.push(`${ds.label}: ${formatChartValue(ds.label, data[idx])}`);
                 } else {
                     // Use actual X values for linear/time scale
                     const points = labels.map((x, i) => ({ x: Number(x), y: Number(data[i]) }));
@@ -780,19 +789,7 @@ const CrosshairPlugin = {
                         const t = (xValue - left.x) / (right.x - left.x);
                         yInterp = left.y + (right.y - left.y) * t;
                     }
-                    let displayValue;
-                    if (ds.label === 'RPM') {
-                        displayValue = Math.round(yInterp);
-                    } else if (ds.label && ds.label.includes('Throttle')) {
-                        displayValue = yInterp.toFixed(2);
-                    } else if (ds.label && ds.label.includes('Thrust')) {
-                        displayValue = yInterp.toFixed(2);
-                    } else if (ds.label && ds.label.includes('Efficiency')) {
-                        displayValue = yInterp.toFixed(3);
-                    } else {
-                        displayValue = yInterp.toFixed(1);
-                    }
-                    lines.push(`${ds.label}: ${displayValue}`);
+                    lines.push(`${ds.label}: ${formatChartValue(ds.label, yInterp)}`);
                 }
             }
         });
@@ -805,7 +802,7 @@ const CrosshairPlugin = {
                 const m = (p1.y - p0.y) / (p1.x - p0.x);
                 const b = p0.y - m * p0.x;
                 const yFit = m * xValue + b;
-                lines.push(`Linear Fit: ${yFit.toFixed(2)}`);
+                lines.push(`Линейная аппроксимация: ${yFit.toFixed(2)}`);
             }
         }
         // Draw value box
@@ -961,11 +958,11 @@ function renderSweepGraphs(data) {
         data: {
             labels: d.throttle.map(v => Math.round(v)),
             datasets: [
-                { label: 'RPM', data: rpm, borderColor: '#e74c3c', fill: false, pointRadius: 0.5, borderWidth: 1, yAxisID: 'yRPM' },
-                { label: 'Thrust (kg)', data: thrust, borderColor: '#27ae60', fill: false, pointRadius: 0.5, borderWidth: 1, yAxisID: 'yThrust' },
-                { label: 'Current (A)', data: current, borderColor: '#3498db', fill: false, pointRadius: 0.5, borderWidth: 1, yAxisID: 'yCurrent' },
-                { label: 'Voltage (V)', data: voltage, borderColor: '#9b59b6', fill: false, pointRadius: 0.5, borderWidth: 1, yAxisID: 'yVoltage' },
-                { label: 'Efficiency (kg/W)', data: thrustPerWatt, borderColor: '#e67e22', fill: false, pointRadius: 0.5, borderWidth: 1, yAxisID: 'yEfficiency' }
+                { label: 'Обороты', data: rpm, borderColor: '#e74c3c', fill: false, pointRadius: 0.5, borderWidth: 1, yAxisID: 'yRPM' },
+                { label: 'Тяга (кг)', data: thrust, borderColor: '#27ae60', fill: false, pointRadius: 0.5, borderWidth: 1, yAxisID: 'yThrust' },
+                { label: 'Ток (А)', data: current, borderColor: '#3498db', fill: false, pointRadius: 0.5, borderWidth: 1, yAxisID: 'yCurrent' },
+                { label: 'Напряжение (В)', data: voltage, borderColor: '#9b59b6', fill: false, pointRadius: 0.5, borderWidth: 1, yAxisID: 'yVoltage' },
+                { label: 'Эффективность (кг/Вт)', data: thrustPerWatt, borderColor: '#e67e22', fill: false, pointRadius: 0.5, borderWidth: 1, yAxisID: 'yEfficiency' }
             ]
         },
         options: {
@@ -1009,17 +1006,7 @@ function renderSweepGraphs(data) {
                             if (label) {
                                 label += ': ';
                             }
-                            if (context.dataset.label === 'RPM') {
-                                label += Math.round(context.parsed.y);
-                            } else if (context.dataset.label && context.dataset.label.includes('Throttle')) {
-                                label += context.parsed.y.toFixed(2);
-                            } else if (context.dataset.label && context.dataset.label.includes('Thrust')) {
-                                label += context.parsed.y.toFixed(2);
-                            } else if (context.dataset.label && context.dataset.label.includes('Efficiency')) {
-                                label += context.parsed.y.toFixed(3);
-                            } else {
-                                label += context.parsed.y.toFixed(1);
-                            }
+                            label += formatChartValue(context.dataset.label, context.parsed.y);
                             return label;
                         }
                     }
@@ -1027,13 +1014,13 @@ function renderSweepGraphs(data) {
             },
             scales: {
                 x: { 
-                    title: { display: true, text: 'Throttle (%)', font: { size: fontSizes.axisTitle } },
+                    title: { display: true, text: 'Газ (%)', font: { size: fontSizes.axisTitle } },
                     ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) }
                 },
                 yRPM: { 
                     type: 'linear', 
                     position: 'left', 
-                    title: { display: true, text: 'RPM (×10³)', font: { size: fontSizes.axisTitle }, color: '#e74c3c' },
+                    title: { display: true, text: 'Обороты (×10³)', font: { size: fontSizes.axisTitle }, color: '#e74c3c' },
                     ticks: {
                         font: { size: fontSizes.ticks },
                         color: '#e74c3c',
@@ -1045,7 +1032,7 @@ function renderSweepGraphs(data) {
                 yThrust: { 
                     type: 'linear', 
                     position: 'right', 
-                    title: { display: true, text: 'Thrust (kg)', font: { size: fontSizes.axisTitle }, color: '#27ae60' },
+                    title: { display: true, text: 'Тяга (кг)', font: { size: fontSizes.axisTitle }, color: '#27ae60' },
                     ticks: { 
                         font: { size: fontSizes.ticks },
                         color: '#27ae60'
@@ -1055,7 +1042,7 @@ function renderSweepGraphs(data) {
                 yCurrent: { 
                     type: 'linear', 
                     position: 'right', 
-                    title: { display: true, text: 'Current (A)', font: { size: fontSizes.axisTitle }, color: '#3498db' },
+                    title: { display: true, text: 'Ток (А)', font: { size: fontSizes.axisTitle }, color: '#3498db' },
                     ticks: { 
                         font: { size: fontSizes.ticks },
                         color: '#3498db'
@@ -1065,7 +1052,7 @@ function renderSweepGraphs(data) {
                 yVoltage: { 
                     type: 'linear', 
                     position: 'right', 
-                    title: { display: true, text: 'Voltage (V)', font: { size: fontSizes.axisTitle }, color: '#9b59b6' },
+                    title: { display: true, text: 'Напряжение (В)', font: { size: fontSizes.axisTitle }, color: '#9b59b6' },
                     ticks: { 
                         font: { size: fontSizes.ticks },
                         color: '#9b59b6'
@@ -1075,7 +1062,7 @@ function renderSweepGraphs(data) {
                 yEfficiency: { 
                     type: 'linear', 
                     position: 'right', 
-                    title: { display: true, text: 'Efficiency (kg/W)', font: { size: fontSizes.axisTitle }, color: '#e67e22' },
+                    title: { display: true, text: 'Эффективность (кг/Вт)', font: { size: fontSizes.axisTitle }, color: '#e67e22' },
                     ticks: { 
                         font: { size: fontSizes.ticks },
                         color: '#e67e22'
@@ -1109,11 +1096,11 @@ function renderStepGraphs(data) {
         data: {
             labels: d.timestamps,
             datasets: [
-                { label: 'Throttle (%)', data: d.throttle, borderColor: '#f39c12', pointRadius: 0, borderWidth: 1, yAxisID: 'yThrottle' },
-                { label: 'RPM', data: rpm, borderColor: '#e74c3c', pointRadius: 0, borderWidth: 1, yAxisID: 'yRPM' },
-                { label: 'Current (A)', data: current, borderColor: '#3498db', pointRadius: 0, borderWidth: 1, yAxisID: 'yCurrent' },
-                { label: 'Voltage (V)', data: voltage, borderColor: '#9b59b6', pointRadius: 0, borderWidth: 1, yAxisID: 'yVoltage' },
-                { label: 'Efficiency (kg/W)', data: thrustPerWatt, borderColor: '#e67e22', pointRadius: 0, borderWidth: 1, yAxisID: 'yEfficiency' }
+                { label: 'Газ (%)', data: d.throttle, borderColor: '#f39c12', pointRadius: 0, borderWidth: 1, yAxisID: 'yThrottle' },
+                { label: 'Обороты', data: rpm, borderColor: '#e74c3c', pointRadius: 0, borderWidth: 1, yAxisID: 'yRPM' },
+                { label: 'Ток (А)', data: current, borderColor: '#3498db', pointRadius: 0, borderWidth: 1, yAxisID: 'yCurrent' },
+                { label: 'Напряжение (В)', data: voltage, borderColor: '#9b59b6', pointRadius: 0, borderWidth: 1, yAxisID: 'yVoltage' },
+                { label: 'Эффективность (кг/Вт)', data: thrustPerWatt, borderColor: '#e67e22', pointRadius: 0, borderWidth: 1, yAxisID: 'yEfficiency' }
             ]
         },
         options: {
@@ -1137,26 +1124,18 @@ function renderStepGraphs(data) {
                             if (label) {
                                 label += ': ';
                             }
-                            if (context.dataset.label === 'RPM') {
-                                label += Math.round(context.parsed.y);
-                            } else if (context.dataset.label && context.dataset.label.includes('Throttle')) {
-                                label += context.parsed.y.toFixed(2);
-                            } else if (context.dataset.label && context.dataset.label.includes('Efficiency')) {
-                                label += context.parsed.y.toFixed(3);
-                            } else {
-                                label += context.parsed.y.toFixed(1);
-                            }
+                            label += formatChartValue(context.dataset.label, context.parsed.y);
                             return label;
                         }
                     }
                 }
             },
             scales: {
-                x: { title: { display: true, text: 'Time (s)', font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) } },
-                yThrottle: { position: 'left', title: { display: true, text: 'Throttle (%)', font: { size: fontSizes.axisTitle }, color: '#f39c12' }, ticks: { color: '#f39c12', font: { size: fontSizes.ticks } } },
+                x: { title: { display: true, text: 'Время (с)', font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) } },
+                yThrottle: { position: 'left', title: { display: true, text: 'Газ (%)', font: { size: fontSizes.axisTitle }, color: '#f39c12' }, ticks: { color: '#f39c12', font: { size: fontSizes.ticks } } },
                 yRPM: { 
                     position: 'right', 
-                    title: { display: true, text: 'RPM (×10³)', font: { size: fontSizes.axisTitle }, color: '#e74c3c' }, 
+                    title: { display: true, text: 'Обороты (×10³)', font: { size: fontSizes.axisTitle }, color: '#e74c3c' }, 
                     grid: { drawOnChartArea: false },
                     ticks: {
                         color: '#e74c3c',
@@ -1166,9 +1145,9 @@ function renderStepGraphs(data) {
                         }
                     }
                 },
-                yCurrent: { position: 'right', title: { display: true, text: 'Current (A)', font: { size: fontSizes.axisTitle }, color: '#3498db' }, ticks: { color: '#3498db', font: { size: fontSizes.ticks } }, grid: { drawOnChartArea: false } },
-                yVoltage: { position: 'right', title: { display: true, text: 'Voltage (V)', font: { size: fontSizes.axisTitle }, color: '#9b59b6' }, ticks: { color: '#9b59b6', font: { size: fontSizes.ticks } }, grid: { drawOnChartArea: false } },
-                yEfficiency: { position: 'right', title: { display: true, text: 'Efficiency (kg/W)', font: { size: fontSizes.axisTitle }, color: '#e67e22' }, ticks: { color: '#e67e22', font: { size: fontSizes.ticks } }, grid: { drawOnChartArea: false } }
+                yCurrent: { position: 'right', title: { display: true, text: 'Ток (А)', font: { size: fontSizes.axisTitle }, color: '#3498db' }, ticks: { color: '#3498db', font: { size: fontSizes.ticks } }, grid: { drawOnChartArea: false } },
+                yVoltage: { position: 'right', title: { display: true, text: 'Напряжение (В)', font: { size: fontSizes.axisTitle }, color: '#9b59b6' }, ticks: { color: '#9b59b6', font: { size: fontSizes.ticks } }, grid: { drawOnChartArea: false } },
+                yEfficiency: { position: 'right', title: { display: true, text: 'Эффективность (кг/Вт)', font: { size: fontSizes.axisTitle }, color: '#e67e22' }, ticks: { color: '#e67e22', font: { size: fontSizes.ticks } }, grid: { drawOnChartArea: false } }
             }
         }
     });
@@ -1184,10 +1163,10 @@ function renderEnduranceGraphs(data) {
         data: {
             labels: d.timestamps,
             datasets: [
-                { label: 'ESC Temp (°C)',   data: smoothCentered(d.escTemp,   11), borderColor: '#e74c3c', pointRadius: 0, borderWidth: 1 },
-                { label: 'Motor Temp (°C)', data: smoothCentered(d.motorTemp, 11), borderColor: '#f39c12', pointRadius: 0, borderWidth: 1 },
-                { label: 'Voltage (V)',     data: smoothCentered(d.voltage,   11), borderColor: '#3498db', pointRadius: 0, borderWidth: 1 },
-                { label: 'Current (A)',     data: smoothCentered(d.current,   11), borderColor: '#27ae60', pointRadius: 0, borderWidth: 1 }
+                { label: 'Темп. ESC (°C)',   data: smoothCentered(d.escTemp,   11), borderColor: '#e74c3c', pointRadius: 0, borderWidth: 1 },
+                { label: 'Темп. мотора (°C)', data: smoothCentered(d.motorTemp, 11), borderColor: '#f39c12', pointRadius: 0, borderWidth: 1 },
+                { label: 'Напряжение (В)',     data: smoothCentered(d.voltage,   11), borderColor: '#3498db', pointRadius: 0, borderWidth: 1 },
+                { label: 'Ток (А)',     data: smoothCentered(d.current,   11), borderColor: '#27ae60', pointRadius: 0, borderWidth: 1 }
             ]
         },
         options: {
@@ -1218,8 +1197,8 @@ function renderEnduranceGraphs(data) {
                 }
             },
             scales: {
-                x: { title: { display: true, text: 'Time (s)', font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) } },
-                y: { title: { display: true, text: 'Temperature/Voltage/Current', font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks } } }
+                x: { title: { display: true, text: 'Время (с)', font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) } },
+                y: { title: { display: true, text: 'Температура/Напряжение/Ток', font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks } } }
             }
         }
     });
@@ -1260,13 +1239,13 @@ function renderIRGraphs(data) {
         data: {
             datasets: [
                 {
-                    label:'ΔV vs ΔI',
+                    label:'ΔV от ΔI',
                     data: points,
                     borderColor:'purple',
                     backgroundColor:'rgba(128,0,128,0.4)'
                 },
                 {
-                    label:'Linear Fit',
+                    label:'Линейная аппроксимация',
                     type:'line',
                     data: fitLine,
                     borderColor:'red',
@@ -1305,7 +1284,7 @@ function renderIRGraphs(data) {
                     annotations: {
                         labelIR: {
                             type: 'label',
-                            content: `IR = ${fit.slope.toFixed(4)} Ω\nR² = ${fit.r2.toFixed(4)}`,
+                            content: `Внутр. сопр. = ${fit.slope.toFixed(4)} Ом\nR² = ${fit.r2.toFixed(4)}`,
                             position: 'center',
                             xValue: minX,
                             yValue: fit.slope * minX + fit.intercept,
@@ -1317,8 +1296,8 @@ function renderIRGraphs(data) {
                 }
             },
             scales: {
-                x: { title:{ text:'ΔCurrent (A)', display:true, font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) } },
-                y: { title:{ text:'ΔVoltage (V)', display:true, font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks } } }
+                x: { title:{ text:'ΔТок (А)', display:true, font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) } },
+                y: { title:{ text:'ΔНапряжение (В)', display:true, font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks } } }
             }
         }
     });
@@ -1354,13 +1333,13 @@ function renderKVGraphs(data) {
         data: {
             datasets: [
                 {
-                    label:'RPM vs Voltage',
+                    label:'Обороты от напряжения',
                     data: points,
                     borderColor:'blue',
                     backgroundColor:'rgba(0,0,255,0.4)'
                 },
                 {
-                    label:'Linear Fit',
+                    label:'Линейная аппроксимация',
                     type:'line',
                     data: fitLine,
                     borderColor:'red',
@@ -1390,11 +1369,9 @@ function renderKVGraphs(data) {
                             if (label) {
                                 label += ': ';
                             }
-                            if (label.includes('RPM')) {
-                                label += Math.round(context.parsed.y);
-                            } else {
-                                label += context.parsed.y.toFixed(2);
-                            }
+                            label += datasetFormatType(context.dataset.label) === 'rpm'
+                                ? Math.round(context.parsed.y)
+                                : context.parsed.y.toFixed(2);
                             return label;
                         }
                     }
@@ -1403,7 +1380,7 @@ function renderKVGraphs(data) {
                     annotations: {
                         label1: {
                             type: 'label',
-                            content: `KV = ${fit.slope.toFixed(2)} RPM/V\nR² = ${fit.r2.toFixed(4)}`,
+                            content: `KV = ${fit.slope.toFixed(2)} об/мин/В\nR² = ${fit.r2.toFixed(4)}`,
                             xValue: maxV,
                             yValue: fit.slope * maxV + fit.intercept,
                             xAdjust: -30,
@@ -1420,9 +1397,9 @@ function renderKVGraphs(data) {
                 }
             },
             scales: {
-                x: { title:{ text:'Voltage (V)', display:true, font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) } },
+                x: { title:{ text:'Напряжение (В)', display:true, font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) } },
                 y: { 
-                    title:{ text:'RPM (×10³)', display:true, font: { size: fontSizes.axisTitle } },
+                    title:{ text:'Обороты (×10³)', display:true, font: { size: fontSizes.axisTitle } },
                     ticks: {
                         font: { size: fontSizes.ticks },
                         callback: function(value) {
@@ -1446,9 +1423,9 @@ function renderThermalGraphs(data) {
         data: {
             labels: d.timestamps,
             datasets: [
-                { label: 'ESC Temp (°C)',   data: smoothCentered(d.escTemp,   11), borderColor: '#e74c3c', pointRadius: 0, borderWidth: 1 },
-                { label: 'Motor Temp (°C)', data: smoothCentered(d.motorTemp, 11), borderColor: '#f39c12', pointRadius: 0, borderWidth: 1 },
-                { label: 'Throttle (%)',    data: d.throttle, borderColor: '#3498db', pointRadius: 0, borderWidth: 1, yAxisID: 'yThrottle' }
+                { label: 'Темп. ESC (°C)',   data: smoothCentered(d.escTemp,   11), borderColor: '#e74c3c', pointRadius: 0, borderWidth: 1 },
+                { label: 'Темп. мотора (°C)', data: smoothCentered(d.motorTemp, 11), borderColor: '#f39c12', pointRadius: 0, borderWidth: 1 },
+                { label: 'Газ (%)',    data: d.throttle, borderColor: '#3498db', pointRadius: 0, borderWidth: 1, yAxisID: 'yThrottle' }
             ]
         },
         options: {
@@ -1472,20 +1449,16 @@ function renderThermalGraphs(data) {
                             if (label) {
                                 label += ': ';
                             }
-                            if (context.dataset.label && context.dataset.label.includes('Throttle')) {
-                                label += context.parsed.y.toFixed(2);
-                            } else {
-                                label += context.parsed.y.toFixed(1);
-                            }
+                            label += formatChartValue(context.dataset.label, context.parsed.y);
                             return label;
                         }
                     }
                 }
             },
             scales: {
-                x: { title: { display: true, text: 'Throttle (%)', font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) } },
-                y: { title: { display: true, text: 'Temperature (°C)', font: { size: fontSizes.axisTitle }, color: '#e74c3c' }, ticks: { color: '#e74c3c', font: { size: fontSizes.ticks } } },
-                yThrottle: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Throttle (%)', font: { size: fontSizes.axisTitle }, color: '#3498db' }, ticks: { color: '#3498db', font: { size: fontSizes.ticks } } }
+                x: { title: { display: true, text: 'Газ (%)', font: { size: fontSizes.axisTitle } }, ticks: { font: { size: fontSizes.ticks }, callback: v => Math.round(v) } },
+                y: { title: { display: true, text: 'Температура (°C)', font: { size: fontSizes.axisTitle }, color: '#e74c3c' }, ticks: { color: '#e74c3c', font: { size: fontSizes.ticks } } },
+                yThrottle: { position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: 'Газ (%)', font: { size: fontSizes.axisTitle }, color: '#3498db' }, ticks: { color: '#3498db', font: { size: fontSizes.ticks } } }
             }
         }
     });
@@ -1522,10 +1495,10 @@ function renderEfficiencyGraphs(data) {
         data: {
             labels: d.throttle.map(v => Math.round(v)),
             datasets: [
-                { label: 'Efficiency (kg/W)', data: efficiency, borderColor: '#e67e22', fill: false, pointRadius: 0.5, borderWidth: 1.5, yAxisID: 'yEfficiency' },
-                { label: 'Power (W)', data: power, borderColor: '#e74c3c', fill: false, pointRadius: 0.5, borderWidth: 1, yAxisID: 'yPower' },
-                { label: 'Thrust (kg)', data: thrust, borderColor: '#27ae60', fill: false, pointRadius: 0.5, borderWidth: 1, yAxisID: 'yThrust' },
-                { label: 'g/1000RPM', data: thrustPerRPM, borderColor: '#9b59b6', fill: false, pointRadius: 0.5, borderWidth: 1, yAxisID: 'yThrustPerRPM' }
+                { label: 'Эффективность (кг/Вт)', data: efficiency, borderColor: '#e67e22', fill: false, pointRadius: 0.5, borderWidth: 1.5, yAxisID: 'yEfficiency' },
+                { label: 'Мощность (Вт)', data: power, borderColor: '#e74c3c', fill: false, pointRadius: 0.5, borderWidth: 1, yAxisID: 'yPower' },
+                { label: 'Тяга (кг)', data: thrust, borderColor: '#27ae60', fill: false, pointRadius: 0.5, borderWidth: 1, yAxisID: 'yThrust' },
+                { label: 'г/1000 об/мин', data: thrustPerRPM, borderColor: '#9b59b6', fill: false, pointRadius: 0.5, borderWidth: 1, yAxisID: 'yThrustPerRPM' }
             ]
         },
         options: {
@@ -1567,15 +1540,7 @@ function renderEfficiencyGraphs(data) {
                             if (label) {
                                 label += ': ';
                             }
-                            if (context.dataset.label && context.dataset.label.includes('Efficiency')) {
-                                label += context.parsed.y.toFixed(3);
-                            } else if (context.dataset.label && context.dataset.label.includes('Thrust')) {
-                                label += context.parsed.y.toFixed(2);
-                            } else if (context.dataset.label && context.dataset.label.includes('g/1000RPM')) {
-                                label += context.parsed.y.toFixed(2);
-                            } else {
-                                label += context.parsed.y.toFixed(1);
-                            }
+                            label += formatChartValue(context.dataset.label, context.parsed.y);
                             return label;
                         }
                     }
@@ -1586,27 +1551,27 @@ function renderEfficiencyGraphs(data) {
                 yEfficiency: { 
                     type: 'linear', 
                     position: 'left', 
-                    title: { display: true, text: 'Efficiency (kg/W)', font: { size: fontSizes.axisTitle }, color: '#e67e22' },
+                    title: { display: true, text: 'Эффективность (кг/Вт)', font: { size: fontSizes.axisTitle }, color: '#e67e22' },
                     ticks: { color: '#e67e22', font: { size: fontSizes.ticks } }
                 },
                 yPower: { 
                     type: 'linear', 
                     position: 'right', 
-                    title: { display: true, text: 'Power (W)', font: { size: fontSizes.axisTitle }, color: '#e74c3c' },
+                    title: { display: true, text: 'Мощность (Вт)', font: { size: fontSizes.axisTitle }, color: '#e74c3c' },
                     ticks: { color: '#e74c3c', font: { size: fontSizes.ticks } },
                     grid: { drawOnChartArea: false } 
                 },
                 yThrust: { 
                     type: 'linear', 
                     position: 'right', 
-                    title: { display: true, text: 'Thrust (kg)', font: { size: fontSizes.axisTitle }, color: '#27ae60' },
+                    title: { display: true, text: 'Тяга (кг)', font: { size: fontSizes.axisTitle }, color: '#27ae60' },
                     ticks: { color: '#27ae60', font: { size: fontSizes.ticks } },
                     grid: { drawOnChartArea: false } 
                 },
                 yThrustPerRPM: { 
                     type: 'linear', 
                     position: 'right', 
-                    title: { display: true, text: 'g/1000RPM', font: { size: fontSizes.axisTitle }, color: '#9b59b6' },
+                    title: { display: true, text: 'г/1000 об/мин', font: { size: fontSizes.axisTitle }, color: '#9b59b6' },
                     ticks: { color: '#9b59b6', font: { size: fontSizes.ticks } },
                     grid: { drawOnChartArea: false } 
                 }
@@ -1618,7 +1583,7 @@ function renderEfficiencyGraphs(data) {
 // Dispatcher
 function renderGraphs(mode, data) {
     if (!data || !data.timestamps || !data.timestamps.length) {
-        appendLog('No data to render');
+        appendLog('Нет данных для отображения');
         return;
     }
     try {
@@ -1634,7 +1599,7 @@ function renderGraphs(mode, data) {
             default: renderStepGraphs(data); break;
         }
     } catch (err) {
-        appendLog(`renderGraphs error: ${err.message}`);
+        appendLog(`Ошибка отображения графиков: ${err.message}`);
     }
 }
 
@@ -1643,7 +1608,7 @@ function renderGraphs(mode, data) {
 // -----------------------------------------------------------------------------
 
 function generateCSV(data) {
-    const headers = ['Time (s)', 'Throttle (%)', 'Voltage (V)', 'Current (A)', 'Power (W)', 'RPM', 'Thrust (g)', 'ESC Temp (°C)', 'Motor Temp (°C)'];
+    const headers = ['Время (с)', 'Газ (%)', 'Напряжение (В)', 'Ток (А)', 'Мощность (Вт)', 'Обороты', 'Тяга (г)', 'Темп. ESC (°C)', 'Темп. мотора (°C)'];
     const rows = [headers];
     for (let i = 0; i < data.timestamps.length; i++) {
         rows.push([
@@ -1678,68 +1643,68 @@ function downloadCSV(csv, filename) {
 function getModeDescription(mode) {
     const descriptions = {
         sweep: {
-            title: 'Static Throttle Sweep',
-            purpose: 'Gradually increases throttle from minimum to maximum while measuring motor performance at each step. Useful for characterizing motor efficiency, power consumption, and thermal behavior across the full operating range.',
-            parameters: '<ul><li><strong>Start Throttle:</strong> Initial throttle percentage (typically 10-20%)</li><li><strong>End Throttle:</strong> Final throttle percentage (typically 80-100%)</li><li><strong>Step Size:</strong> Throttle increment between measurements</li><li><strong>Dwell:</strong> Time in seconds to hold each throttle step</li><li><strong>Ramp Rate:</strong> Speed of throttle changes between steps</li><li><strong>Repeats:</strong> Number of times to repeat the sweep</li></ul>',
-            howItWorks: 'The motor ramps to each throttle level, holds steady while collecting telemetry data, then moves to the next level. This creates a comprehensive performance profile.',
-            graphAnalysis: 'Use throttle vs RPM/thrust/current scatter/line and RPM vs Voltage curves. Look for linear relations and anomalies.'
+            title: 'Статический разгон по газу',
+            purpose: 'Постепенно увеличивает газ от минимума до максимума, измеряя характеристики мотора на каждом шаге. Полезно для определения КПД, потребления мощности и теплового поведения во всём рабочем диапазоне.',
+            parameters: '<ul><li><strong>Начальный газ:</strong> Начальный процент газа (обычно 10–20%)</li><li><strong>Конечный газ:</strong> Конечный процент газа (обычно 80–100%)</li><li><strong>Шаг:</strong> Приращение газа между измерениями</li><li><strong>Выдержка:</strong> Время удержания каждого шага газа в секундах</li><li><strong>Скорость разгона:</strong> Скорость изменения газа между шагами</li><li><strong>Повторы:</strong> Количество повторений разгона</li></ul>',
+            howItWorks: 'Мотор разгоняется до каждого уровня газа, удерживает его при сборе телеметрии, затем переходит к следующему уровню. Так формируется полный профиль характеристик.',
+            graphAnalysis: 'Используйте зависимости обороты/тяга/ток от газа и кривые обороты от напряжения. Ищите линейные участки и аномалии.'
         },
         step: {
-            title: 'Step Response Test',
-            purpose: 'Tests motor acceleration and response time by making sudden throttle changes. Critical for understanding system dynamics, ESC response, and motor/propeller inertia.',
-            parameters: '<ul><li><strong>Low Throttle:</strong> Starting throttle level</li><li><strong>High Throttle:</strong> Target throttle level</li><li><strong>On Duration:</strong> How long to hold the high throttle</li><li><strong>Off Duration:</strong> How long to hold the low throttle</li><li><strong>Cycles:</strong> Number of step cycles to perform</li><li><strong>Ramp Rate:</strong> Speed of throttle transitions</li></ul>',
-            howItWorks: 'Motor starts at low throttle, then jumps to high throttle and holds for the specified duration before returning to low. This cycle repeats.',
-            graphAnalysis: 'Plot RPM and current vs time with throttle overlay. Compute dRPM/dt to assess responsiveness.'
+            title: 'Ступенчатый отклик',
+            purpose: 'Проверяет ускорение мотора и время отклика при резких изменениях газа. Важно для понимания динамики системы, отклика ESC и инерции мотора/пропеллера.',
+            parameters: '<ul><li><strong>Низкий газ:</strong> Начальный уровень газа</li><li><strong>Высокий газ:</strong> Целевой уровень газа</li><li><strong>Длительность включения:</strong> Время удержания высокого газа</li><li><strong>Длительность выключения:</strong> Время удержания низкого газа</li><li><strong>Циклы:</strong> Количество ступенчатых циклов</li><li><strong>Скорость разгона:</strong> Скорость переходов газа</li></ul>',
+            howItWorks: 'Мотор начинает с низкого газа, затем скачком переходит на высокий и удерживает его заданное время, после чего возвращается к низкому. Цикл повторяется.',
+            graphAnalysis: 'Постройте обороты и ток от времени с наложением газа. Вычислите dRPM/dt для оценки отзывчивости.'
         },
         endurance: {
-            title: 'Fixed Throttle Endurance',
-            purpose: 'Runs motor at constant throttle for extended periods to test thermal performance, battery capacity, and long-term stability.',
-            parameters: '<ul><li><strong>Throttle Level:</strong> Constant throttle percentage to maintain</li><li><strong>Duration:</strong> Test duration in minutes</li><li><strong>Cooldown:</strong> Cooldown period in minutes after test</li></ul>',
-            howItWorks: 'Motor runs continuously at the specified throttle level while monitoring temperatures, voltage sag, and current draw over time.',
-            graphAnalysis: 'Use time-series for temperature and voltage; fit thermal stabilization if required.'
+            title: 'Выносливость при фиксированном газе',
+            purpose: 'Работает мотор на постоянном газе длительное время для проверки тепловых характеристик, ёмкости АКБ и долгосрочной стабильности.',
+            parameters: '<ul><li><strong>Уровень газа:</strong> Постоянный процент газа</li><li><strong>Длительность:</strong> Длительность теста в минутах</li><li><strong>Охлаждение:</strong> Период охлаждения в минутах после теста</li></ul>',
+            howItWorks: 'Мотор непрерывно работает на заданном газе с мониторингом температур, просадки напряжения и потребления тока во времени.',
+            graphAnalysis: 'Используйте временные ряды температуры и напряжения; при необходимости аппроксимируйте тепловую стабилизацию.'
         },
         ir: {
-            title: 'Battery IR (Internal Resistance)',
-            purpose: 'Measures battery internal resistance by applying current steps and measuring voltage drops.',
-            parameters: '<ul><li><strong>Baseline:</strong> Starting throttle level</li><li><strong>Pulse Amplitude:</strong> Additional throttle for current pulse</li><li><strong>On Duration:</strong> Duration of current pulse</li><li><strong>Off Duration:</strong> Rest period between pulses</li><li><strong>Pulses:</strong> Number of current pulses to apply</li></ul>',
-            howItWorks: 'Applies current pulses and measures ΔV/ΔI. Slope gives internal resistance.',
-            graphAnalysis: 'Plot ΔV vs ΔI and compute linear regression slope.'
+            title: 'Внутреннее сопротивление АКБ',
+            purpose: 'Измеряет внутреннее сопротивление аккумулятора путём ступеней тока и измерения падения напряжения.',
+            parameters: '<ul><li><strong>Базовый газ:</strong> Начальный уровень газа</li><li><strong>Амплитуда импульса:</strong> Дополнительный газ для токового импульса</li><li><strong>Длительность включения:</strong> Длительность токового импульса</li><li><strong>Длительность выключения:</strong> Пауза между импульсами</li><li><strong>Импульсы:</strong> Количество токовых импульсов</li></ul>',
+            howItWorks: 'Применяет токовые импульсы и измеряет ΔV/ΔI. Наклон даёт внутреннее сопротивление.',
+            graphAnalysis: 'Постройте ΔV от ΔI и вычислите наклон линейной регрессии.'
         },
         kv: {
-            title: 'KV Estimation',
-            purpose: 'Estimates motor KV (RPM per volt) by measuring RPM at different supply voltages or throttle points (if voltage is varied).',
-            parameters: '<ul><li><strong>Low:</strong> Minimum throttle level</li><li><strong>High:</strong> Maximum throttle level</li><li><strong>Step Size:</strong> Throttle increment between measurements</li><li><strong>Dwell:</strong> Stabilization time at each throttle level</li><li><strong>Current Ceiling:</strong> Maximum allowed current draw</li></ul>',
-            howItWorks: 'Collect RPM and voltage at stable points; slope of RPM vs Voltage is KV.',
-            graphAnalysis: 'Scatter RPM vs Voltage; compute slope.'
+            title: 'Оценка KV',
+            purpose: 'Оценивает KV мотора (обороты на вольт) по измерению оборотов при разных напряжениях питания или точках газа.',
+            parameters: '<ul><li><strong>Газ:</strong> Уровень газа для измерения</li><li><strong>Шаги напряжения:</strong> Количество точек напряжения</li><li><strong>Выдержка:</strong> Время стабилизации на каждом уровне</li><li><strong>Предел тока:</strong> Максимально допустимый ток</li></ul>',
+            howItWorks: 'Собирает обороты и напряжение в стабильных точках; наклон зависимости обороты от напряжения — это KV.',
+            graphAnalysis: 'Точечная диаграмма обороты от напряжения; вычислите наклон.'
         },
         thermal: {
-            title: 'ESC Thermal Stress Test',
-            purpose: 'Tests ESC thermal management by alternating between high and low throttle periods.',
-            parameters: '<ul><li><strong>Segment 1 Throttle:</strong> First throttle level</li><li><strong>Segment 1 Duration:</strong> Time at first throttle</li><li><strong>Segment 2 Throttle:</strong> Second throttle level</li><li><strong>Segment 2 Duration:</strong> Time at second throttle</li></ul>',
-            howItWorks: 'Alternates between two throttle levels creating thermal cycles to stress ESC thermal management.',
-            graphAnalysis: 'Plot ESC & motor temps vs time and monitor rise/decay behaviour and thermal throttling.'
+            title: 'Тепловой стресс ESC',
+            purpose: 'Проверяет тепловое управление ESC чередованием периодов высокого и низкого газа.',
+            parameters: '<ul><li><strong>Газ сегмента 1:</strong> Первый уровень газа</li><li><strong>Длительность сегмента 1:</strong> Время на первом газе</li><li><strong>Газ сегмента 2:</strong> Второй уровень газа</li><li><strong>Длительность сегмента 2:</strong> Время на втором газе</li></ul>',
+            howItWorks: 'Чередует два уровня газа, создавая тепловые циклы для нагрузки на систему охлаждения ESC.',
+            graphAnalysis: 'Постройте температуры ESC и мотора от времени и отслеживайте нагрев/охлаждение и тепловое ограничение.'
         },
         mapping: {
-            title: 'Prop/Motor Mapping',
-            purpose: 'Creates comprehensive performance characterization maps for motor and propeller combinations. Essential for comparing different propellers, validating motor specifications, and building performance databases for drone/aircraft design.',
-            parameters: '<ul><li><strong>Repeats:</strong> Number of complete sweep cycles (typically 3-5 for statistical averaging)</li><li><strong>Ambient Temp:</strong> Initial temperature in °C (important for thermal correction and repeatability)</li><li><strong>Notes:</strong> Record test conditions, propeller specs (diameter, pitch, material), motor model, voltage, and any other relevant setup details</li></ul>',
-            howItWorks: 'Executes multiple identical throttle sweeps from low to high throttle, allowing the system to cool between runs. Each sweep collects comprehensive telemetry including RPM, thrust, current, voltage, and temperatures. Multiple runs enable statistical analysis and reveal performance consistency. Data can be averaged to remove noise and identify reliable operating characteristics.',
-            graphAnalysis: 'Graph overlays multiple sweep traces showing RPM, thrust, and current vs throttle. Analyze trace repeatability to assess measurement quality - tight clustering indicates good data. Compare peak values across runs to check for thermal throttling or battery sag. Use this data to create performance lookup tables (thrust vs throttle, power vs RPM) for flight controller tuning. Export CSV data for further analysis in spreadsheet tools or Python/MATLAB for curve fitting and generating motor constants (Kv, Kt, Io, Rm). Ideal for propeller selection by comparing efficiency curves of different props on the same motor.'
+            title: 'Картирование пропеллер/мотор',
+            purpose: 'Создаёт полные карты характеристик для сочетаний мотор/пропеллер. Необходимо для сравнения пропеллеров, проверки спецификаций мотора и построения баз данных для проектирования БПЛА.',
+            parameters: '<ul><li><strong>Повторы:</strong> Количество полных циклов разгона (обычно 3–5 для усреднения)</li><li><strong>Температура окружающей среды:</strong> Начальная температура в °C (важно для тепловой коррекции и повторяемости)</li><li><strong>Заметки:</strong> Условия теста, параметры пропеллера (диаметр, шаг, материал), модель мотора, напряжение и прочие детали</li></ul>',
+            howItWorks: 'Выполняет несколько одинаковых разгонов от низкого до высокого газа с охлаждением между прогонами. Каждый разгон собирает обороты, тягу, ток, напряжение и температуры. Несколько прогонов позволяют статистический анализ и оценку стабильности характеристик.',
+            graphAnalysis: 'График накладывает несколько трасс разгона: обороты, тяга и ток от газа. Анализируйте повторяемость — плотное скопление указывает на качественные данные. Сравнивайте пиковые значения для выявления теплового ограничения или просадки АКБ. Используйте данные для таблиц тяга/газ, мощность/обороты при настройке полётного контроллера. Экспортируйте CSV для анализа в Excel, Python/MATLAB.'
         },
         efficiency: {
-            title: 'Efficiency Analysis',
-            purpose: 'Analyzes motor and propeller efficiency by measuring thrust output per watt of electrical power consumed. Identifies the most efficient operating points for your motor/propeller combination.',
-            parameters: '<ul><li><strong>Start Throttle:</strong> Initial throttle percentage (typically 10-20%)</li><li><strong>End Throttle:</strong> Final throttle percentage (typically 80-100%)</li><li><strong>Step Size:</strong> Throttle increment between measurements</li><li><strong>Dwell:</strong> Time in seconds to stabilize at each throttle step</li><li><strong>Ramp Rate:</strong> Speed of throttle changes between steps</li></ul>',
-            howItWorks: 'Performs a throttle sweep while calculating real-time efficiency metrics: thrust-to-power ratio (kg/W), power consumption (W), and propeller loading (g/1000RPM). Each metric helps identify optimal operating ranges.',
-            graphAnalysis: 'Primary graph shows Efficiency (kg/W) on left axis vs throttle. Higher values indicate more efficient operation. Additional metrics include Power (W) for total consumption, Thrust (kg) for reference, and g/1000RPM for propeller efficiency. Look for peak efficiency points - typically found at mid-throttle ranges. Compare different propellers to find the most efficient setup for your application.'
+            title: 'Анализ эффективности',
+            purpose: 'Анализирует КПД мотора и пропеллера по отношению тяги к потребляемой электрической мощности. Определяет наиболее эффективные рабочие точки.',
+            parameters: '<ul><li><strong>Начальный газ:</strong> Начальный процент газа (обычно 10–20%)</li><li><strong>Конечный газ:</strong> Конечный процент газа (обычно 80–100%)</li><li><strong>Шаг:</strong> Приращение газа между измерениями</li><li><strong>Выдержка:</strong> Время стабилизации на каждом шаге</li><li><strong>Скорость разгона:</strong> Скорость изменения газа между шагами</li></ul>',
+            howItWorks: 'Выполняет разгон по газу с расчётом метрик в реальном времени: тяга/мощность (кг/Вт), потребление (Вт) и нагрузка пропеллера (г/1000 об/мин).',
+            graphAnalysis: 'Основной график — эффективность (кг/Вт) по оси Y от газа. Более высокие значения — более эффективная работа. Дополнительно: мощность (Вт), тяга (кг) и г/1000 об/мин. Ищите пиковые точки эффективности — обычно в среднем диапазоне газа.'
         }
     };
     return descriptions[mode] || {
-        title: 'Unknown Mode',
-        purpose: 'Mode not documented',
-        parameters: 'N/A',
-        howItWorks: 'N/A',
-        graphAnalysis: 'N/A'
+        title: 'Неизвестный режим',
+        purpose: 'Режим не описан',
+        parameters: 'н/д',
+        howItWorks: 'н/д',
+        graphAnalysis: 'н/д'
     };
 }
 
@@ -1748,18 +1713,18 @@ function updateModeDescription(mode) {
     const contentEl = document.getElementById('modeDescriptionContent');
     if (!contentEl) return;
     if (!mode) {
-        contentEl.innerHTML = `<h3>Select a Mode</h3><p>Choose a mode to view details.</p>`;
+        contentEl.innerHTML = `<h3>Выберите режим</h3><p>Выберите режим для просмотра подробностей.</p>`;
         return;
     }
     contentEl.innerHTML = `
         <h3>${desc.title}</h3>
         <p>${desc.purpose}</p>
         <div>
-            <h4>Parameters:</h4>
+            <h4>Параметры:</h4>
             ${desc.parameters}
-            <h4>How it works:</h4>
+            <h4>Как это работает:</h4>
             <p>${desc.howItWorks}</p>
-            <h4>Graph Analysis:</h4>
+            <h4>Анализ графиков:</h4>
             <p>${desc.graphAnalysis}</p>
         </div>
     `;
@@ -1771,49 +1736,49 @@ function updateModeDescription(mode) {
 
 const modeParamsSchema = {
     sweep: [
-        { key: 'startThrottle', label: 'Start Throttle (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 0 },
-        { key: 'endThrottle', label: 'End Throttle (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 100 },
-        { key: 'stepSize', label: 'Step Size (%)', type: 'number', min: 0.5, max: 20, step: 0.5, value: 5 },
-        { key: 'dwell', label: 'Dwell per Step (s)', type: 'number', min: 0.5, max: 60, step: 0.5, value: 3 },
-        { key: 'rampRate', label: 'Ramp Rate (%/s)', type: 'number', min: 1, max: 100, step: 1, value: 20 },
-        { key: 'repeats', label: 'Repeats', type: 'number', min: 1, max: 10, step: 1, value: 1 }
+        { key: 'startThrottle', label: 'Начальный газ (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 0 },
+        { key: 'endThrottle', label: 'Конечный газ (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 100 },
+        { key: 'stepSize', label: 'Шаг (%)', type: 'number', min: 0.5, max: 20, step: 0.5, value: 5 },
+        { key: 'dwell', label: 'Выдержка на шаг (с)', type: 'number', min: 0.5, max: 60, step: 0.5, value: 3 },
+        { key: 'rampRate', label: 'Скорость разгона (%/с)', type: 'number', min: 1, max: 100, step: 1, value: 20 },
+        { key: 'repeats', label: 'Повторы', type: 'number', min: 1, max: 10, step: 1, value: 1 }
     ],
     step: [
-        { key: 'lowThrottle', label: 'Low Throttle (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 10 },
-        { key: 'highThrottle', label: 'High Throttle (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 60 },
-        { key: 'onDuration', label: 'On Duration (s)', type: 'number', min: 0.2, max: 30, step: 0.2, value: 3 },
-        { key: 'offDuration', label: 'Off Duration (s)', type: 'number', min: 0.2, max: 30, step: 0.2, value: 3 },
-        { key: 'cycles', label: 'Cycles', type: 'number', min: 1, max: 50, step: 1, value: 5 },
-        { key: 'rampRate', label: 'Ramp Rate (%/s)', type: 'number', min: 1, max: 100, step: 1, value: 100 }
+        { key: 'lowThrottle', label: 'Низкий газ (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 10 },
+        { key: 'highThrottle', label: 'Высокий газ (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 60 },
+        { key: 'onDuration', label: 'Длительность вкл. (с)', type: 'number', min: 0.2, max: 30, step: 0.2, value: 3 },
+        { key: 'offDuration', label: 'Длительность выкл. (с)', type: 'number', min: 0.2, max: 30, step: 0.2, value: 3 },
+        { key: 'cycles', label: 'Циклы', type: 'number', min: 1, max: 50, step: 1, value: 5 },
+        { key: 'rampRate', label: 'Скорость разгона (%/с)', type: 'number', min: 1, max: 100, step: 1, value: 100 }
     ],
     endurance: [
-        { key: 'throttle', label: 'Throttle (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 50 },
-        { key: 'duration', label: 'Duration (min)', type: 'number', min: 1, max: 180, step: 1, value: 10 },
-        { key: 'cooldown', label: 'Cooldown (min)', type: 'number', min: 0, max: 60, step: 1, value: 2 }
+        { key: 'throttle', label: 'Газ (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 50 },
+        { key: 'duration', label: 'Длительность (мин)', type: 'number', min: 1, max: 180, step: 1, value: 10 },
+        { key: 'cooldown', label: 'Охлаждение (мин)', type: 'number', min: 0, max: 60, step: 1, value: 2 }
     ],
     ir: [
-        { key: 'baseline', label: 'Baseline Throttle (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 10 },
-        { key: 'pulseAmplitude', label: 'Pulse Amplitude (%)', type: 'number', min: 1, max: 50, step: 0.5, value: 10 },
-        { key: 'onDuration', label: 'Pulse On (s)', type: 'number', min: 0.2, max: 10, step: 0.2, value: 1 },
-        { key: 'offDuration', label: 'Pulse Off (s)', type: 'number', min: 0.2, max: 10, step: 0.2, value: 1 },
-        { key: 'pulses', label: 'Pulses', type: 'number', min: 1, max: 50, step: 1, value: 10 }
+        { key: 'baseline', label: 'Базовый газ (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 10 },
+        { key: 'pulseAmplitude', label: 'Амплитуда импульса (%)', type: 'number', min: 1, max: 50, step: 0.5, value: 10 },
+        { key: 'onDuration', label: 'Импульс вкл. (с)', type: 'number', min: 0.2, max: 10, step: 0.2, value: 1 },
+        { key: 'offDuration', label: 'Импульс выкл. (с)', type: 'number', min: 0.2, max: 10, step: 0.2, value: 1 },
+        { key: 'pulses', label: 'Импульсы', type: 'number', min: 1, max: 50, step: 1, value: 10 }
     ],
     kv: [
-        { key: 'throttle', label: 'Throttle (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 20 },
-        { key: 'voltageSteps', label: 'Voltage Steps', type: 'number', min: 2, max: 10, step: 1, value: 5 },
-        { key: 'dwell', label: 'Dwell per Step (s)', type: 'number', min: 0.5, max: 30, step: 0.5, value: 2 },
-        { key: 'currentCeiling', label: 'Current Ceiling (A)', type: 'number', min: 0.5, max: 100, step: 0.5, value: 10 }
+        { key: 'throttle', label: 'Газ (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 20 },
+        { key: 'voltageSteps', label: 'Шаги напряжения', type: 'number', min: 2, max: 10, step: 1, value: 5 },
+        { key: 'dwell', label: 'Выдержка на шаг (с)', type: 'number', min: 0.5, max: 30, step: 0.5, value: 2 },
+        { key: 'currentCeiling', label: 'Предел тока (А)', type: 'number', min: 0.5, max: 100, step: 0.5, value: 10 }
     ],
     thermal: [
-        { key: 'segment1Throttle', label: 'Segment 1 Throttle (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 70 },
-        { key: 'segment1Duration', label: 'Segment 1 Duration (s)', type: 'number', min: 5, max: 600, step: 1, value: 120 },
-        { key: 'segment2Throttle', label: 'Segment 2 Throttle (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 90 },
-        { key: 'segment2Duration', label: 'Segment 2 Duration (s)', type: 'number', min: 5, max: 600, step: 1, value: 30 }
+        { key: 'segment1Throttle', label: 'Газ сегмента 1 (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 70 },
+        { key: 'segment1Duration', label: 'Длительность сегмента 1 (с)', type: 'number', min: 5, max: 600, step: 1, value: 120 },
+        { key: 'segment2Throttle', label: 'Газ сегмента 2 (%)', type: 'number', min: 0, max: 100, step: 0.5, value: 90 },
+        { key: 'segment2Duration', label: 'Длительность сегмента 2 (с)', type: 'number', min: 5, max: 600, step: 1, value: 30 }
     ],
     mapping: [
-        { key: 'repeats', label: 'Repeats', type: 'number', min: 1, max: 10, step: 1, value: 3 },
-        { key: 'ambientTemp', label: 'Ambient Temp (°C)', type: 'number', min: -20, max: 50, step: 1, value: 25 },
-        { key: 'notes', label: 'Notes', type: 'text', value: '' }
+        { key: 'repeats', label: 'Повторы', type: 'number', min: 1, max: 10, step: 1, value: 3 },
+        { key: 'ambientTemp', label: 'Темп. окружающей среды (°C)', type: 'number', min: -20, max: 50, step: 1, value: 25 },
+        { key: 'notes', label: 'Заметки', type: 'text', value: '' }
     ]
 };
 
@@ -1830,7 +1795,7 @@ function renderParamsUI(mode) {
         let min = field.min;
         let value = field.value;
         // enforce throttle min based on arm threshold
-        if (field.key.toLowerCase().includes('throttle') || field.label.includes('Throttle (%)') || field.key === 'baseline') {
+        if (field.key.toLowerCase().includes('throttle') || field.label.includes('газ (%)') || field.key === 'baseline') {
             min = Math.max(min || 0, minThrottlePercent);
             value = Math.max(value, minThrottlePercent);
         }
@@ -1906,17 +1871,17 @@ function updateAnalizeControlsEnabled(updateMessage = true) {
         if (!connected) {
             const statusEl = document.getElementById('analizeStatus');
             if (statusEl) {
-                statusEl.textContent = 'Connect to device and arm the motor to enable analyze';
+                statusEl.textContent = 'Подключите устройство и взведите мотор для активации анализа';
                 statusEl.style.color = '#6c757d';
             }
         } else if (state.analysis.stopping) {
-            setAnalizeStatusMessage('Stopping analyze...', 'warn');
+            setAnalizeStatusMessage('Остановка анализа...', 'warn');
         } else if (!armed) {
-            setAnalizeStatusMessage('⚠️ Motor is not armed. Please arm in Control tab.', 'warn');
+            setAnalizeStatusMessage('⚠️ Мотор не взведён. Взведите на вкладке «Управление».', 'warn');
         } else if (state.analysis.running && state.analysis.mode) {
-            setAnalizeStatusMessage(`${state.analysis.mode} analyze is running`, 'info');
+            setAnalizeStatusMessage(`Анализ «${getModeLabel(state.analysis.mode)}» выполняется`, 'info');
         } else {
-            setAnalizeStatusMessage('State: ready', 'info');
+            setAnalizeStatusMessage('Состояние: готово', 'info');
         }
     }
 }
@@ -1960,7 +1925,7 @@ export function initAnalizeTab() {
             const m = modeSelect.value;
             renderParamsUI(m);
             updateModeDescription(m);
-            if (modeHint) modeHint.textContent = `Configuring: ${m}`;
+            if (modeHint) modeHint.textContent = `Настройка: ${getModeLabel(m)}`;
         });
     }
 
@@ -1997,16 +1962,16 @@ export function initAnalizeTab() {
             const propDiam = profile.propDiameter ? profile.propDiameter : '--';
             const propPitch = profile.propPitch ? profile.propPitch : '--';
             const propBlade = profile.propBlades ? profile.propBlades : '--';
-            const motorTitle = `Motor KV: ${motorKV} | Prop: ${propDiam}x${propPitch}x${propBlade}`;
+            const motorTitle = `KV мотора: ${motorKV} | Пропеллер: ${propDiam}x${propPitch}x${propBlade}`;
             // Gather mode and params
             const mode = lastRun.mode;
             const params = lastRun.params || {};
             let paramText = Object.entries(params).map(([k,v]) => `${k}: ${v}`).join(', ');
-            if (!paramText) paramText = '(no parameters)';
+            if (!paramText) paramText = '(без параметров)';
             // Profile details
             let profileText = '';
             if (profile && profile.profileName) {
-                profileText = `Profile: ${profile.profileName}`;
+                profileText = `Профиль: ${profile.profileName}`;
             }
 
             // Battery voltage and analysis metrics
@@ -2030,7 +1995,7 @@ export function initAnalizeTab() {
             }
 
             // Footer text
-            const footerText = `Battery Voltage: ${batteryVoltage} V | Voltage Drop: ${voltageDrop} V | Consumed Power: ${consumedPower} Wh`;
+            const footerText = `Напряжение АКБ: ${batteryVoltage} В | Падение напряжения: ${voltageDrop} В | Потреблённая энергия: ${consumedPower} Вт·ч`;
 
             // Create PDF
             const pdf = new window.jspdf.jsPDF({ orientation: 'landscape', unit: 'px', format: [chartCanvas.width+40, chartCanvas.height+140] });
@@ -2039,8 +2004,8 @@ export function initAnalizeTab() {
             pdf.addImage(imgData, 'PNG', 20, 50, chartCanvas.width, chartCanvas.height);
             pdf.setFontSize(12);
             pdf.text(profileText, 20, chartCanvas.height + 70);
-            pdf.text(`Mode: ${mode}`, 20, chartCanvas.height + 90);
-            pdf.text(`Parameters: ${paramText}`, 20, chartCanvas.height + 110);
+            pdf.text(`Режим: ${getModeLabel(mode)}`, 20, chartCanvas.height + 90);
+            pdf.text(`Параметры: ${paramText}`, 20, chartCanvas.height + 110);
             pdf.text(footerText, 20, chartCanvas.height + 130);
             const filename = `analyze_${mode}_${new Date(lastRun.timestamp).toISOString().slice(0,19).replace(/:/g,'-')}.pdf`;
             pdf.save(filename);
@@ -2092,9 +2057,9 @@ export function initAnalizeTab() {
         const { error, warn } = options;
         if (error) {
             state.analysis.lastError = error;
-            setAnalizeStatusMessage(`Error: ${error}`, 'error');
+            setAnalizeStatusMessage(`Ошибка: ${error}`, 'error');
         } else if (warn) {
-            setAnalizeStatusMessage(`Warn: ${warn}`, 'warn');
+            setAnalizeStatusMessage(`Предупреждение: ${warn}`, 'warn');
         } else {
             updateAnalizeControlsEnabled();
         }

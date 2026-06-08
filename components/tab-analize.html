@@ -2,39 +2,39 @@
     <div class="panel-grid">
 
         <section class="card" id="telemetryCard" data-block-interaction style="font-size: 0.85rem;">
-            <h2 style="font-size: 0.7rem; margin-bottom: 0.3rem;">Live Telemetry</h2>
+            <h2 style="font-size: 0.7rem; margin-bottom: 0.3rem;">Телеметрия в реальном времени</h2>
             <div class="metrics-grid">
                 <div class="metric-row">
                     <article class="metric">
-                        <h3>Voltage</h3>
+                        <h3>Напряжение</h3>
                         <p id="analizeVoltage">--</p>
                     </article>
                     <article class="metric">
-                        <h3>Current</h3>
+                        <h3>Ток</h3>
                         <p id="analizeCurrent">--</p>
                     </article>
                     <article class="metric">
-                        <h3>Power</h3>
+                        <h3>Мощность</h3>
                         <p id="analizePower">--</p>
                     </article>
                 </div>
                 <div class="metric-row">
                     <article class="metric">
-                        <h3>RPM</h3>
+                        <h3>Обороты</h3>
                         <p id="analizeRpm">--</p>
                     </article>
                     <article class="metric">
-                        <h3>Thrust</h3>
+                        <h3>Тяга</h3>
                         <p id="analizeThrust">--</p>
                     </article>
                 </div>
                 <div class="metric-row">
                     <article class="metric">
-                        <h3>ESC Temp</h3>
+                        <h3>Темп. ESC</h3>
                         <p id="analizeEscTemp">--</p>
                     </article>
                     <article class="metric">
-                        <h3>Motor Temp</h3>
+                        <h3>Темп. мотора</h3>
                         <p id="analizeMotorTemp">--</p>
                     </article>
                 </div>
@@ -43,41 +43,36 @@
 
 
         <section class="card" id="analizeCard" style="font-size: 0.85rem;">
-            <h2 style="font-size: 0.7rem; margin-bottom: 0.3rem;">Analyze</h2>
+            <h2 style="font-size: 0.7rem; margin-bottom: 0.3rem;">Анализ</h2>
 
             <div class="inline-field" data-connected-only style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; font-size: 0.75rem;">
-                <span style="min-width: auto;">Mode:</span>
+                <span style="min-width: auto;">Режим:</span>
                 <select id="analizeModeSelect" disabled style="flex: 1; min-width: 220px; font-size: 0.75rem;">
-                    <option value="sweep">Static Throttle Sweep</option>
-                    <option value="step">Step Response</option>
-                    <option value="endurance">Fixed Throttle Endurance</option>
-                    <option value="ir">Battery IR (Current Steps)</option>
-                    <option value="kv">KV Estimation</option>
-                    <option value="thermal">ESC Thermal Stress</option>
-                    <option value="mapping">Prop/Motor Mapping</option>
-                    <option value="efficiency">Efficiency Analysis</option>
+                    <option value="sweep">Статический разгон по газу</option>
+                    <option value="step">Ступенчатый отклик</option>
+                    <option value="endurance">Выносливость при фиксированном газе</option>
+                    <option value="ir">Внутр. сопротивление АКБ (ступени тока)</option>
+                    <option value="kv">Оценка KV</option>
+                    <option value="thermal">Тепловой стресс ESC</option>
+                    <option value="mapping">Картирование проп./мотор</option>
+                    <option value="efficiency">Анализ эффективности</option>
                 </select>
             </div>
-            <div class="subtext" id="analizeModeHint" style="margin-top: 0.35rem; font-size: 0.65rem;">Select a mode to configure parameters.</div>
+            <div class="subtext" id="analizeModeHint" style="margin-top: 0.35rem; font-size: 0.65rem;">Выберите режим для настройки параметров.</div>
 
-            <!-- Parameters inline below mode -->
             <div id="analize-params-card" class="params-grid" style="margin-top: 0.4rem;"></div>
         </section>
 
-        
-
-        <!-- Buttons card (no title) -->
         <section class="card" style="padding: 0.4rem 0.6rem;">
             <div class="button-row" data-connected-only style="gap: 0.5rem;">
-                <button id="analizeStartButton" class="success" disabled style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">Start</button>
-                <button id="analizeStopButton" class="neutral" disabled style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">Stop</button>
+                <button id="analizeStartButton" class="success" disabled style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">Старт</button>
+                <button id="analizeStopButton" class="neutral" disabled style="font-size: 0.75rem; padding: 0.3rem 0.6rem;">Стоп</button>
             </div>
         </section>
 
-        <!-- Status card -->
         <section class="card" style="font-size: 0.85rem; padding: 0.4rem 0.6rem;">
-            <h2 style="font-size: 0.7rem; margin-bottom: 0.3rem;">Status</h2>
-            <p id="analizeStatus" style="font-size: 0.75rem;">Awaiting connection.</p>
+            <h2 style="font-size: 0.7rem; margin-bottom: 0.3rem;">Статус</h2>
+            <p id="analizeStatus" style="font-size: 0.75rem;">Ожидание подключения.</p>
             <div id="analizeProgress" style="display: none; margin-top: 0.5rem;">
                 <div class="progress-bar" style="width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
                     <div class="progress-fill" id="progressFill" style="height: 100%; background: #149eca; width: 0%; transition: width 0.3s ease;"></div>
@@ -86,15 +81,14 @@
             </div>
         </section>
 
-        <!-- Graphs card -->
         <section class="card" id="graphsCard" style="padding: 0.4rem 0.6rem 0.4rem 0.8rem;">
             <h2 style="position:relative; font-size: 0.7rem; margin-bottom: 0.3rem; display: flex; align-items: center; justify-content: space-between;">
-                Analysis Graphs
+                Графики анализа
                 <span style="display:flex; gap:0.3rem; align-items: center;">
-                    <button id="exportDataButton" title="Export CSV" style="background:none;border:none;padding:0.2rem;font-size:1.1em;cursor:pointer;line-height:1;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">
+                    <button id="exportDataButton" title="Экспорт CSV" style="background:none;border:none;padding:0.2rem;font-size:1.1em;cursor:pointer;line-height:1;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     </button>
-                    <button id="fullscreenGraphButton" title="View Fullscreen" style="background:none;border:none;padding:0.2rem;font-size:1.1em;cursor:pointer;line-height:1;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">⛶</button>
+                    <button id="fullscreenGraphButton" title="Полный экран" style="background:none;border:none;padding:0.2rem;font-size:1.1em;cursor:pointer;line-height:1;width:24px;height:24px;display:flex;align-items:center;justify-content:center;">⛶</button>
                 </span>
             </h2>
             <div id="analyzeChartContainer" style="position:relative; padding-left: 0.5rem;">
@@ -102,25 +96,24 @@
             </div>
         </section>
 
-        <!-- Mode Description card -->
         <section class="card" id="modeDescriptionCard" style="font-size: 0.85rem;">
-            <h2 style="font-size: 0.7rem; margin-bottom: 0.3rem;">Mode Description</h2>
+            <h2 style="font-size: 0.7rem; margin-bottom: 0.3rem;">Описание режима</h2>
             <div style="margin-bottom: 0.5rem;">
                 <select id="descriptionModeSelect" style="font-size: 0.75rem;">
-                    <option value="">Select a Mode</option>
-                    <option value="sweep">Static Throttle Sweep</option>
-                    <option value="step">Step Response</option>
-                    <option value="endurance">Fixed Throttle Endurance</option>
-                    <option value="ir">Battery IR (Current Steps)</option>
-                    <option value="kv">KV Estimation</option>
-                    <option value="thermal">ESC Thermal Stress</option>
-                    <option value="mapping">Prop/Motor Mapping</option>
-                    <option value="efficiency">Efficiency Analysis</option>
+                    <option value="">Выберите режим</option>
+                    <option value="sweep">Статический разгон по газу</option>
+                    <option value="step">Ступенчатый отклик</option>
+                    <option value="endurance">Выносливость при фиксированном газе</option>
+                    <option value="ir">Внутр. сопротивление АКБ (ступени тока)</option>
+                    <option value="kv">Оценка KV</option>
+                    <option value="thermal">Тепловой стресс ESC</option>
+                    <option value="mapping">Картирование проп./мотор</option>
+                    <option value="efficiency">Анализ эффективности</option>
                 </select>
             </div>
             <div id="modeDescriptionContent">
-                <h3>Select a Mode</h3>
-                <p>Choose an analysis mode from the dropdown above to see detailed information about what it does and how to interpret the results.</p>
+                <h3>Выберите режим</h3>
+                <p>Выберите режим анализа из списка выше, чтобы увидеть подробное описание и способы интерпретации результатов.</p>
             </div>
         </section>
 

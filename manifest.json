@@ -1,7 +1,7 @@
 {
-  "name": "UAV Motor Lab",
-  "short_name": "Motor Lab",
-  "description": "Wireless UAV motor testing via Web Bluetooth",
+  "name": "Лаборатория моторов БПЛА",
+  "short_name": "Мотор. лаб.",
+  "description": "Беспроводное тестирование моторов БПЛА через Web Bluetooth",
   "start_url": "/UAVMLab.github.io/",
   "scope": "/UAVMLab.github.io/",
   "display": "standalone",
@@ -11,20 +11,20 @@
   "categories": ["utilities", "productivity"],
   "shortcuts": [
     {
-      "name": "Connect Device",
-      "short_name": "Connect",
+      "name": "Подключить устройство",
+      "short_name": "Подкл.",
       "url": "/UAVMLab.github.io/?tab=connection",
       "icons": [{ "src": "icons/icon-192.svg", "sizes": "192x192" }]
     },
     {
-      "name": "Motor Control",
-      "short_name": "Control",
+      "name": "Управление мотором",
+      "short_name": "Управл.",
       "url": "/UAVMLab.github.io/?tab=control",
       "icons": [{ "src": "icons/icon-192.svg", "sizes": "192x192" }]
     },
     {
-      "name": "View Results",
-      "short_name": "Results",
+      "name": "Просмотр результатов",
+      "short_name": "Результаты",
       "url": "/UAVMLab.github.io/?tab=results",
       "icons": [{ "src": "icons/icon-192.svg", "sizes": "192x192" }]
     }

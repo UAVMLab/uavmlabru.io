@@ -1,56 +1,56 @@
 <section class="tab-panel" id="tab-profiles" role="tabpanel">
     <div class="panel-grid">
         <section class="card">
-            <h2>Available Profiles</h2>
-            <p class="subtext">Profiles stored on the device</p>
+            <h2>Доступные профили</h2>
+            <p class="subtext">Профили, сохранённые на устройстве</p>
             <div class="button-row">
-                <button id="loadProfilesButton" disabled data-connected-only title="Connect a device to load profiles">Load Profiles</button>
+                <button id="loadProfilesButton" disabled data-connected-only title="Подключите устройство для загрузки профилей">Загрузить профили</button>
             </div>
             <div id="profileList" class="profile-list">
-                <p class="empty">No profiles available.</p>
+                <p class="empty">Нет доступных профилей.</p>
             </div>
-            <button id="addProfileButton" class="ghost" disabled data-connected-only title="Connect a device to add profiles">+ Add New Profile</button>
+            <button id="addProfileButton" class="ghost" disabled data-connected-only title="Подключите устройство для добавления профиля">+ Добавить профиль</button>
         </section>
 
         <section class="card" id="profileDetailsCard" style="display: none;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                <h2 id="profileDetailsTitle">Profile Details</h2>
+                <h2 id="profileDetailsTitle">Детали профиля</h2>
                 <label class="checkbox-label" style="margin: 0;">
                     <input type="checkbox" id="modifyProfileCheckbox">
-                    <span>Modify</span>
+                    <span>Изменить</span>
                 </label>
             </div>
             
             <form id="profileForm">
                 <label class="inline-field">
-                    <span>Profile Name</span>
+                    <span>Имя профиля</span>
                     <input type="text" id="profileName" required disabled>
                 </label>
                 
                 <label class="inline-field">
-                    <span>Motor KV</span>
+                    <span>KV мотора</span>
                     <input type="text" id="motorKV" required disabled>
                 </label>
                 
                 <label class="inline-field">
-                    <span>Prop Diameter (inch)</span>
+                    <span>Диаметр пропеллера (дюйм)</span>
                     <input type="number" id="propDiameter" required step="0.1" disabled>
                 </label>
                 
                 <label class="inline-field">
-                    <span>Prop Pitch (inch)</span>
+                    <span>Шаг пропеллера (дюйм)</span>
                     <input type="number" id="propPitch" required step="0.1" disabled>
                 </label>
                 
                 <label class="inline-field">
-                    <span>Prop Blades</span>
+                    <span>Лопасти пропеллера</span>
                     <input type="number" id="propBlades" required min="2" max="6" disabled>
                 </label>
                 
                 <label class="inline-field">
-                    <span>Battery Cell Count</span>
+                    <span>Количество ячеек АКБ</span>
                     <select id="batteryCellCount" required disabled>
-                        <option value="0">Unknown</option>
+                        <option value="0">Неизвестно</option>
                         <option value="1">1S LiPo</option>
                         <option value="2">2S LiPo</option>
                         <option value="3">3S LiPo</option>
@@ -71,57 +71,55 @@
                 </label>
                 
                 <label class="inline-field">
-                    <span>Motor Poles</span>
+                    <span>Полюса мотора</span>
                     <input type="number" id="motorPoles" required min="2" step="2" disabled>
                 </label>
                 
                 <label class="checkbox-label inline-field">
-                    <span>Motor Reverse</span>
+                    <span>Реверс мотора</span>
                     <input type="checkbox" id="motorReverse" disabled>
                     <span style="flex: 1; order: 2;"></span>
                 </label>
                 
                 <label class="inline-field">
-                    <span>Arm Throttle (48-2047)</span>
+                    <span>Газ взведения (48–2047)</span>
                     <input type="number" id="armThrottle" required min="48" max="2047" disabled>
                 </label>
                 
                 <label class="inline-field">
-                    <span>Max RPM</span>
+                    <span>Макс. обороты</span>
                     <input type="number" id="maxRPM" required min="0" disabled>
                 </label>
                 
                 <label class="inline-field">
-                    <span>Max ESC Temperature (°C)</span>
+                    <span>Макс. температура ESC (°C)</span>
                     <input type="number" id="maxESCTemp" required step="0.1" disabled>
                 </label>
                 
                 <label class="inline-field">
-                    <span>Max Motor Temperature (°C)</span>
+                    <span>Макс. температура мотора (°C)</span>
                     <input type="number" id="maxMotorTemp" required step="0.1" disabled>
                 </label>
                 
                 <label class="inline-field">
-                    <span>Max Current (A)</span>
+                    <span>Макс. ток (А)</span>
                     <input type="number" id="maxCurrent" required step="0.1" disabled>
                 </label>
                 
                 <label class="inline-field">
-                    <span>Max Thrust (kg)</span>
+                    <span>Макс. тяга (кг)</span>
                     <input type="number" id="maxThrust" required step="0.1" disabled>
                 </label>
 
-                <!-- Action buttons when not modifying -->
                 <div id="profileActions" class="button-row">
-                    <button type="button" id="setProfileButton" class="success" disabled data-connected-only>Set Active</button>
-                    <button type="button" id="removeProfileButton" class="danger" disabled data-connected-only>Remove</button>
-                    <button type="button" id="downloadProfileButton" class="neutral" disabled>Download</button>
+                    <button type="button" id="setProfileButton" class="success" disabled data-connected-only>Сделать активным</button>
+                    <button type="button" id="removeProfileButton" class="danger" disabled data-connected-only>Удалить</button>
+                    <button type="button" id="downloadProfileButton" class="neutral" disabled>Скачать</button>
                 </div>
 
-                <!-- Save/Cancel buttons when modifying -->
                 <div id="profileModifyActions" class="button-row" style="display: none;">
-                    <button type="submit" id="saveProfileButton" class="success" disabled data-connected-only>Save</button>
-                    <button type="button" id="cancelModifyButton" class="neutral">Cancel</button>
+                    <button type="submit" id="saveProfileButton" class="success" disabled data-connected-only>Сохранить</button>
+                    <button type="button" id="cancelModifyButton" class="neutral">Отмена</button>
                 </div>
             </form>
         </section>

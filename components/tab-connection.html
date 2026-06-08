@@ -1,16 +1,16 @@
 <section class="tab-panel active" id="tab-connection" role="tabpanel">
     <div class="panel-grid">
         <section class="card">
-            <h2>Connection Status</h2>
+            <h2>Статус подключения</h2>
             <div class="button-row">
-                <button id="connectButton">Scan &amp; Connect</button>
-                <button id="disconnectButton" disabled data-connected-only title="Connect a device first">Disconnect</button>
+                <button id="connectButton">Поиск и подключение</button>
+                <button id="disconnectButton" disabled data-connected-only title="Сначала подключите устройство">Отключить</button>
             </div>
             <div id="status">
-                <p id="statusText">Web Bluetooth not initialized.</p>
-                <p id="deviceName">Device: N/A</p>
+                <p id="statusText">Web Bluetooth не инициализирован.</p>
+                <p id="deviceName">Устройство: н/д</p>
                 <p id="connectionStrength" style="display: flex; align-items: flex-end; gap: 0.5rem;">
-                    <span style="line-height: 10px;">Signal:</span> 
+                    <span style="line-height: 10px;">Сигнал:</span> 
                     <span id="rssiValue" style="line-height: 20px;">--</span>
                     <span id="rssiIndicator" style="display: inline-flex; gap: 2px; align-items: flex-end; height: 20px;">
                         <span class="signal-bar" style="height: 8px; width: 3px; background: #30363d; border-radius: 1px;"></span>
@@ -23,37 +23,29 @@
         </section>
 
         <section class="card">
-            <h2>Device History</h2>
-            <p class="subtext">Devices you've connected to will appear here.</p>
-            <!-- <div class="button-row">
-                <label class="checkbox-label">
-                    <input type="checkbox" id="scanAllDevices">
-                    <span>Show All BLE Devices (not just drone service)</span>
-                </label>
-            </div> -->
+            <h2>История устройств</h2>
+            <p class="subtext">Здесь появятся устройства, к которым вы подключались.</p>
             <ul id="deviceList" class="device-list">
-                <li class="empty">No devices discovered yet.</li>
+                <li class="empty">Устройства пока не обнаружены.</li>
             </ul>
         </section>
 
         <section class="card">
-            <h2>Device ID Configuration</h2>
+            <h2>Настройка ID устройства</h2>
             <div class="inline-field">
-                <label for="deviceIdInput">Device ID:</label>
-                <input type="number" id="deviceIdInput" min="0" max="255" step="1" value="0" data-connected-only title="Connect a device to configure the ID">
-                <button id="setDeviceIdButton" data-connected-only title="Connect a device first">Set ID</button>
+                <label for="deviceIdInput">ID устройства:</label>
+                <input type="number" id="deviceIdInput" min="0" max="255" step="1" value="0" data-connected-only title="Подключите устройство для настройки ID">
+                <button id="setDeviceIdButton" data-connected-only title="Сначала подключите устройство">Установить ID</button>
             </div>
             <p class="subtext" style="margin-top: 0.5rem; font-size: 0.75rem; color: #8b949e;">
-                ⚠️ Setting a new ID will reboot the device and disconnect. After disconnection, refresh the page and reconnect to see the updated device name.
+                ⚠️ Установка нового ID перезагрузит устройство и разорвёт соединение. После отключения обновите страницу и переподключитесь, чтобы увидеть обновлённое имя устройства.
             </p>
         </section>
 
         <section class="card">
-            <h2>Device Snapshot</h2>
+            <h2>Снимок устройства</h2>
             <ul>
-                <li>Firmware: <span id="firmwareVersion">--</span></li>
-                <!-- <li>Battery: <span id="batteryLevel">--</span></li>
-                <li>Temperature: <span id="temperature">--</span></li> -->
+                <li>Прошивка: <span id="firmwareVersion">--</span></li>
             </ul>
         </section>
     </div>

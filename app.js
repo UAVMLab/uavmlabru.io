@@ -40,9 +40,9 @@ async function initApp() {
     
     // Check Web Bluetooth support
     if (navigator.bluetooth) {
-        setStatus('Web Bluetooth ready. Click Connect to begin.');
+        setStatus('Web Bluetooth готов. Нажмите «Поиск и подключение» для начала работы.');
     } else {
-        setStatus('Web Bluetooth is NOT supported in this browser/platform. Try Chrome on Android, ChromeOS, or macOS/Windows.');
+        setStatus('Web Bluetooth НЕ поддерживается в этом браузере/платформе. Попробуйте Chrome на Android, ChromeOS, macOS или Windows.');
         const connectButton = document.getElementById('connectButton');
         if (connectButton) {
             connectButton.disabled = true;

@@ -22,8 +22,8 @@ export async function connectDevice(onConnectedCallback = null, onDisconnectedCa
     const scanAllDevicesCheckbox = document.getElementById('scanAllDevices');
     
     try {
-        setStatus('Requesting Bluetooth device...');
-        appendLog('Initiating device scan...');
+        setStatus('Запрос Bluetooth-устройства...');
+        appendLog('Запуск сканирования устройств...');
 
         const bleOptions = (scanAllDevicesCheckbox && scanAllDevicesCheckbox.checked)
             ? { acceptAllDevices: true, optionalServices: [NUS_SERVICE_UUID, APP_DISCOVERY_SERVICE_UUID] }
@@ -32,8 +32,8 @@ export async function connectDevice(onConnectedCallback = null, onDisconnectedCa
         const device = await navigator.bluetooth.requestDevice(bleOptions);
         setBleDevice(device);
 
-        setStatus(`Connecting to ${device.name}...`);
-        appendLog(`Device selected: ${device.name || 'Unknown'}`);
+        setStatus(`Подключение к ${device.name}...`);
+        appendLog(`Выбрано устройство: ${device.name || 'Неизвестно'}`);
 
         device.addEventListener('gattserverdisconnected', () => {
             if (onDisconnectedCallback) onDisconnectedCallback();
@@ -41,45 +41,45 @@ export async function connectDevice(onConnectedCallback = null, onDisconnectedCa
 
         const server = await device.gatt.connect();
         setGattServer(server);
-        setStatus(`Connected to ${device.name}. Discovering services...`, true);
-        appendLog('GATT Server connected. Discovering services...');
+        setStatus(`Подключено к ${device.name}. Обнаружение сервисов...`, true);
+        appendLog('GATT-сервер подключён. Обнаружение сервисов...');
 
         const nusService = await server.getPrimaryService(NUS_SERVICE_UUID);
-        appendLog('NUS service found.');
+        appendLog('Сервис NUS найден.');
 
         const rxChar = await nusService.getCharacteristic(NUS_RX_CHARACTERISTIC_UUID);
         setCommandCharacteristic(rxChar);
-        appendLog('RX characteristic ready (write to device).');
+        appendLog('Характеристика RX готова (запись на устройство).');
 
         const txChar = await nusService.getCharacteristic(NUS_TX_CHARACTERISTIC_UUID);
         setTelemetryCharacteristic(txChar);
         await txChar.startNotifications();
         txChar.addEventListener('characteristicvaluechanged', handleTelemetry);
-        appendLog('TX characteristic notifications started (receive from device).');
+        appendLog('Уведомления характеристики TX запущены (приём с устройства).');
 
         try {
             const appService = await server.getPrimaryService(APP_DISCOVERY_SERVICE_UUID);
             const infoChar = await appService.getCharacteristic(APP_INFO_CHARACTERISTIC_UUID);
             const infoValue = await infoChar.readValue();
             const appInfo = decoder.decode(infoValue);
-            appendLog(`App Info: ${appInfo}`);
+            appendLog(`Информация о приложении: ${appInfo}`);
         } catch (err) {
-            appendLog('App Discovery Service not available or failed to read.');
+            appendLog('Сервис App Discovery недоступен или не удалось прочитать.');
         }
 
         state.connectedDeviceId = device.id;
         
-        setStatus(`Connected to ${device.name}`, true);
+        setStatus(`Подключено к ${device.name}`, true);
         vibratePattern([50, 50, 100]);
-        appendLog('Connection established successfully!');
+        appendLog('Соединение успешно установлено!');
         
         // Request firmware version
         setTimeout(async () => {
             try {
                 await sendCommand('get_version');
-                appendLog('Requested firmware version from device.');
+                appendLog('Запрошена версия прошивки с устройства.');
             } catch (err) {
-                appendLog(`Failed to request version: ${err.message}`);
+                appendLog(`Не удалось запросить версию: ${err.message}`);
             }
         }, 1000);
         
@@ -90,9 +90,9 @@ export async function connectDevice(onConnectedCallback = null, onDisconnectedCa
         
         return device;
     } catch (error) {
-        setStatus(`Connection failed: ${error.message}`);
+        setStatus(`Ошибка подключения: ${error.message}`);
         vibratePattern([200]);
-        appendLog(`Error: ${error.message}`);
+        appendLog(`Ошибка: ${error.message}`);
         console.error(error);
         throw error;
     }
@@ -107,7 +107,7 @@ export async function disconnectDevice(onDisconnectedCallback = null) {
     const device = getBleDevice();
     
     if (!device) {
-        appendLog('No device to disconnect.');
+        appendLog('Нет устройства для отключения.');
         return;
     }
     
@@ -115,7 +115,7 @@ export async function disconnectDevice(onDisconnectedCallback = null) {
         try {
             device.gatt.disconnect();
             vibrate(80);
-            appendLog('Disconnect requested by user.');
+            appendLog('Отключение запрошено пользователем.');
             
             setTimeout(() => {
                 if (device && !device.gatt.connected) {
@@ -123,12 +123,12 @@ export async function disconnectDevice(onDisconnectedCallback = null) {
                 }
             }, 500);
         } catch (error) {
-            appendLog(`Disconnect error: ${error.message}`);
+            appendLog(`Ошибка отключения: ${error.message}`);
             console.error('Disconnect error:', error);
             if (onDisconnectedCallback) onDisconnectedCallback();
         }
     } else {
-        appendLog('Device is not connected.');
+        appendLog('Устройство не подключено.');
         if (onDisconnectedCallback) onDisconnectedCallback();
     }
 }
@@ -138,11 +138,11 @@ export async function disconnectDevice(onDisconnectedCallback = null) {
  */
 export function handleDisconnection() {
     stopRSSIMonitoring();
-    setStatus('Device disconnected.');
+    setStatus('Устройство отключено.');
     
     state.connectedDeviceId = null;
     clearCommandQueue();
-    appendLog('Device disconnected.');
+    appendLog('Устройство отключено.');
     
     setBleDevice(null);
     setGattServer(null);
@@ -158,7 +158,7 @@ export function rememberDevice(device) {
     if (!device) return;
     const exists = state.discoveredDevices.some((entry) => entry.id === device.id);
     if (!exists) {
-        state.discoveredDevices.push({ id: device.id, name: device.name || 'Unknown Device' });
+        state.discoveredDevices.push({ id: device.id, name: device.name || 'Неизвестное устройство' });
     }
 }
 
@@ -168,15 +168,15 @@ export function rememberDevice(device) {
  */
 export async function setDeviceId(deviceId) {
     if (isNaN(deviceId) || deviceId < 0 || deviceId > 255) {
-        setStatus('Invalid device ID. Must be between 0-255.', false);
+        setStatus('Недопустимый ID устройства. Должен быть от 0 до 255.', false);
         vibrate(50);
-        throw new Error('Invalid device ID');
+        throw new Error('Недопустимый ID устройства');
     }
     
     const idVal = { value: deviceId };
     
     await sendCommand('set_dev_id', idVal);
-    setStatus(`Setting device ID to ${deviceId}... You will need to reconnect to see the updated device name.`, true);
-    appendLog(`Sending set_dev_id command: ${deviceId}. Reconnect required for name update.`);
+    setStatus(`Установка ID устройства: ${deviceId}... Для отображения нового имени потребуется переподключение.`, true);
+    appendLog(`Отправка команды set_dev_id: ${deviceId}. Для обновления имени требуется переподключение.`);
     vibrate(20);
 }

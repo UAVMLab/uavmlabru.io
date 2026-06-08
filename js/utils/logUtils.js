@@ -4,7 +4,7 @@ import { MAX_LOG_LINES } from '../config/constants.js';
 import { state } from '../state.js';
 
 // Log buffer and filter state
-export const logBuffer = [{ timestamp: new Date(), type: 'info', message: 'Ready.' }];
+export const logBuffer = [{ timestamp: new Date(), type: 'info', message: 'Готово.' }];
 export const logFilters = {
     info: true,
     warning: true,
@@ -22,8 +22,9 @@ export function detectLogType(message) {
     const lowerMsg = message.toLowerCase();
     if (message.startsWith('RX:') || message.startsWith('←')) return 'rx';
     if (message.startsWith('TX:') || message.startsWith('→')) return 'tx';
-    if (lowerMsg.includes('error') || lowerMsg.includes('failed') || lowerMsg.includes('disconnect')) return 'error';
-    if (lowerMsg.includes('warning') || lowerMsg.includes('warn')) return 'warning';
+    if (lowerMsg.includes('error') || lowerMsg.includes('failed') || lowerMsg.includes('disconnect') ||
+        lowerMsg.includes('ошибка') || lowerMsg.includes('не удалось') || lowerMsg.includes('сбой') || lowerMsg.includes('отключ')) return 'error';
+    if (lowerMsg.includes('warning') || lowerMsg.includes('warn') || lowerMsg.includes('предупреждение')) return 'warning';
     return 'info';
 }
 
@@ -54,6 +55,6 @@ export function updateLogDisplay() {
         const colorClass = `log-${log.type}`;
         return `<span class="${colorClass}">[${timeStr}] ${log.message}</span>`;
     }).join('\n');
-    logOutput.innerHTML = logHTML || 'No logs to display.';
+    logOutput.innerHTML = logHTML || 'Нет записей для отображения.';
     logOutput.scrollTop = logOutput.scrollHeight;
 }

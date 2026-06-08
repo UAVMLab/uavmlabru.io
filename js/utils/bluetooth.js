@@ -23,7 +23,7 @@ async function processCommandQueue() {
         try {
             const commandCharacteristic = getCommandCharacteristic();
             if (!commandCharacteristic) {
-                throw new Error('Not connected or command characteristic not available.');
+                throw new Error('Нет подключения или характеристика команд недоступна.');
             }
             
             const jsonString = JSON.stringify(command);

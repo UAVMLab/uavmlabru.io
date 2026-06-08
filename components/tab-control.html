@@ -1,55 +1,52 @@
 <section class="tab-panel" id="tab-control" role="tabpanel">
     <div class="panel-grid">
-        <!-- Live Telemetry card -->
         <section class="card">
-            <h2>Live Telemetry</h2>
+            <h2>Телеметрия в реальном времени</h2>
             
             <div class="metrics-grid">
                 <div class="metric-row">
                     <article class="metric">
-                        <h3>Voltage</h3>
+                        <h3>Напряжение</h3>
                         <p id="voltageMetric">--</p>
                     </article>
                     <article class="metric">
-                        <h3>Current</h3>
+                        <h3>Ток</h3>
                         <p id="currentMetric">--</p>
                     </article>
                     <article class="metric">
-                        <h3>Power</h3>
+                        <h3>Мощность</h3>
                         <p id="powerMetric">--</p>
                     </article>
                 </div>
                 <div class="metric-row">
                     <article class="metric">
-                        <h3>RPM</h3>
+                        <h3>Обороты</h3>
                         <p id="rpmMetric">--</p>
                     </article>
                     <article class="metric">
-                        <h3>Thrust</h3>
+                        <h3>Тяга</h3>
                         <p id="thrustMetric">--</p>
                     </article>
                 </div>
                 <div class="metric-row">
                     <article class="metric">
-                        <h3>ESC Temp</h3>
+                        <h3>Темп. ESC</h3>
                         <p id="escTempMetric">--</p>
                     </article>
                     <article class="metric">
-                        <h3>Motor Temp</h3>
+                        <h3>Темп. мотора</h3>
                         <p id="motorTempMetric">--</p>
                     </article>
                 </div>
             </div>
         </section>
 
-        
-        <!-- Control Actions card -->
         <section class="card">
-            <h2>Control Actions</h2>
+            <h2>Действия управления</h2>
             <div class="slide-to-arm-wrapper" data-connected-only data-profile-required>
                 <div class="slide-to-arm" id="slideToArm">
                     <div class="slide-track">
-                        <span class="slide-text">Slide to ARM >> </span>
+                        <span class="slide-text">Сдвиньте для взвода >> </span>
                     </div>
                     <div class="slide-button" id="slideButton">
                         <span>>></span>
@@ -57,12 +54,12 @@
                 </div>
                 <label class="checkbox-label">
                     <input type="checkbox" id="forceArmCheckbox" disabled data-connected-only data-profile-required>
-                    <span style="font-size: 0.8rem;">Force</span>
+                    <span style="font-size: 0.8rem;">Принудительно</span>
                 </label>
             </div>
 
             <label class="inline-field" style="gap: 0.5rem;">
-                <span style="min-width: auto; text-align: left;">Throttle:</span>
+                <span style="min-width: auto; text-align: left;">Газ:</span>
                 <input type="range" id="throttleSlider" min="48" max="2047" value="48" disabled data-connected-only data-profile-required style="flex: 1;">
                 <span id="throttleValue" style="min-width: 45px; text-align: right;">0.00</span>
                 <span>%</span>
@@ -70,11 +67,9 @@
 
         </section>
 
-
-        <!-- Status card -->
         <section class="card">
-            <h2>Status</h2>
-            <p id="controlStatus">Awaiting connection.</p>
+            <h2>Статус</h2>
+            <p id="controlStatus">Ожидание подключения.</p>
         </section>
     </div>
 </section>

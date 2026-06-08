@@ -7,9 +7,9 @@ export function initResultsTab() {
 }
 
 export function drawCharts() {
-    drawChart('powerChart', state.lastTestResults.power, 'Power (W)', '#0b5cff');
-    drawChart('thrustChart', state.lastTestResults.thrust, 'Thrust (g)', '#2ecc71');
-    drawChart('thermalChart', state.lastTestResults.thermal, 'Temperature (°C)', '#f39c12');
+    drawChart('powerChart', state.lastTestResults.power, 'Мощность (Вт)', '#0b5cff');
+    drawChart('thrustChart', state.lastTestResults.thrust, 'Тяга (г)', '#2ecc71');
+    drawChart('thermalChart', state.lastTestResults.thermal, 'Температура (°C)', '#f39c12');
 }
 
 function drawChart(canvasId, data, label, color) {
@@ -28,7 +28,7 @@ function drawChart(canvasId, data, label, color) {
         ctx.fillStyle = '#8b949e';
         ctx.font = '14px sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText('No data available', width / 2, height / 2);
+        ctx.fillText('Нет данных', width / 2, height / 2);
         return;
     }
 
@@ -68,5 +68,5 @@ function drawChart(canvasId, data, label, color) {
     ctx.textAlign = 'left';
     ctx.fillText(label, padding, padding - 10);
     ctx.textAlign = 'right';
-    ctx.fillText(`Max: ${maxVal.toFixed(1)}`, width - padding, padding - 10);
+    ctx.fillText(`Макс.: ${maxVal.toFixed(1)}`, width - padding, padding - 10);
 }

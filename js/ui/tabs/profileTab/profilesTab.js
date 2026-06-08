@@ -73,21 +73,21 @@ async function loadProfilesFromDevice() {
         renderProfileList();
         
         await sendCommand('get_profile_list');
-        appendLog('Requesting profile list from device...');
+        appendLog('Запрос списка профилей с устройства...');
         
         // Only request current active profile if we haven't received it yet
         if (!hasReceivedCurrentProfile) {
             setTimeout(async () => {
                 try {
                     await sendCommand('get_cur_profile');
-                    appendLog('Requesting current active profile...');
+                    appendLog('Запрос текущего активного профиля...');
                 } catch (error) {
-                    appendLog(`Failed to request current profile: ${error.message}`);
+                    appendLog(`Не удалось запросить текущий профиль: ${error.message}`);
                 }
             }, 2000);
         }
     } catch (error) {
-        appendLog(`Failed to load profiles: ${error.message}`);
+        appendLog(`Не удалось загрузить профили: ${error.message}`);
     }
 }
 
@@ -128,7 +128,7 @@ export function handleProfileMessage(profile) {
     
     // Re-render the list
     renderProfileList();
-    appendLog(`Profile "${profile.name}" received.`);
+    appendLog(`Профиль «${profile.name}» получен.`);
 }
 
 export function handleCurrentProfileMessage(profileName) {
@@ -136,7 +136,7 @@ export function handleCurrentProfileMessage(profileName) {
     hasReceivedCurrentProfile = true; // Mark as received
     console.log('Current active profile set to:', `"${currentActiveProfileName}"`);
     console.log('Available profiles:', receivedProfiles.map(p => `"${p.profileName}"`));
-    appendLog(`Current active profile: "${profileName}"`);
+    appendLog(`Текущий активный профиль: «${profileName}»`);
     renderProfileList();
 }
 
@@ -147,7 +147,7 @@ function renderProfileList() {
     if (!state.lastRxProfiles || !state.lastRxProfiles.profiles || state.lastRxProfiles.profiles.length === 0) {
         const empty = document.createElement('p');
         empty.className = 'empty';
-        empty.textContent = 'No profiles available.';
+        empty.textContent = 'Нет доступных профилей.';
         profileList.appendChild(empty);
         return;
     }
@@ -231,7 +231,7 @@ function toggleModifyMode() {
     // Check if this is a new profile (name is "New Profile" or not in existing profiles)
     const existingProfiles = state.lastRxProfiles?.profiles || receivedProfiles;
     const isNewProfile = !currentProfile || 
-                         currentProfile.profileName === 'New Profile' ||
+                         currentProfile.profileName === 'Новый профиль' ||
                          !existingProfiles.some(p => p.profileName === currentProfile.profileName);
     
     // Enable/disable form fields
@@ -281,7 +281,7 @@ async function saveProfile(e) {
     
     // Validate motor poles (must be even)
     if (profileData.mPoles % 2 !== 0 || profileData.mPoles < 2) {
-        appendLog('ERROR: Motor poles must be an even number greater than or equal to 2.');
+        appendLog('ОШИБКА: Количество полюсов мотора должно быть чётным числом не менее 2.');
         return;
     }
     
@@ -295,7 +295,7 @@ async function saveProfile(e) {
     try {
         await sendCommand(command, profileData);
         vibratePattern([80, 40, 80]); // Success pattern for save
-        appendLog(`Profile "${profileData.name}" ${isNewOrRenamed ? 'create' : 'save'} requested.`);
+        appendLog(`Запрошено ${isNewOrRenamed ? 'создание' : 'сохранение'} профиля «${profileData.name}».`);
         
         // Mark that we need to refresh current profile info
         invalidateCurrentProfile();
@@ -308,7 +308,7 @@ async function saveProfile(e) {
         toggleModifyMode();
     } catch (error) {
         vibratePattern([300]); // Error vibration
-        appendLog(`Failed to ${isNewOrRenamed ? 'create' : 'save'} profile: ${error.message}`);
+        appendLog(`Не удалось ${isNewOrRenamed ? 'создать' : 'сохранить'} профиль: ${error.message}`);
     }
 }
 
@@ -329,7 +329,7 @@ async function setActiveProfile() {
     try {
         await sendCommand('load_profile', { value: currentProfile.profileName });
         vibratePattern([50, 30, 80]); // Success pattern for set active
-        appendLog(`Set profile "${currentProfile.profileName}" as active.`);
+        appendLog(`Профиль «${currentProfile.profileName}» установлен как активный.`);
         
         // Mark that we need to refresh current profile info
         invalidateCurrentProfile();
@@ -340,14 +340,14 @@ async function setActiveProfile() {
         }, 500);
     } catch (error) {
         vibratePattern([300]); // Error vibration
-        appendLog(`Failed to set profile: ${error.message}`);
+        appendLog(`Не удалось установить профиль: ${error.message}`);
     }
 }
 
 async function removeProfile() {
     if (!currentProfile) return;
     
-    if (!confirm(`Are you sure you want to remove profile "${currentProfile.profileName}"?`)) {
+    if (!confirm(`Вы уверены, что хотите удалить профиль «${currentProfile.profileName}»?`)) {
         vibrate(30); // Cancelled
         return;
     }
@@ -355,7 +355,7 @@ async function removeProfile() {
     try {
         await sendCommand('delete_profile', { value: currentProfile.profileName });
         vibratePattern([100, 50, 100]); // Warning pattern for delete
-        appendLog(`Profile "${currentProfile.profileName}" removal requested.`);
+        appendLog(`Запрошено удаление профиля «${currentProfile.profileName}».`);
         
         // Mark that we need to refresh current profile info
         invalidateCurrentProfile();
@@ -365,7 +365,7 @@ async function removeProfile() {
         currentProfile = null;
     } catch (error) {
         vibratePattern([300]); // Error vibration
-        appendLog(`Failed to remove profile: ${error.message}`);
+        appendLog(`Не удалось удалить профиль: ${error.message}`);
     }
 }
 
@@ -384,14 +384,14 @@ function downloadProfile() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     
-    appendLog(`Profile "${currentProfile.profileName}" downloaded.`);
+    appendLog(`Профиль «${currentProfile.profileName}» скачан.`);
 }
 
 function addNewProfile() {
     vibrate(40); // Feedback for new profile
     // Create a new empty profile
     const newProfile = {
-        profileName: 'New Profile',
+        profileName: 'Новый профиль',
         motorKV: '',
         propDiameter: '',
         propPitch: '',
